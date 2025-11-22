@@ -1,5 +1,5 @@
 """
-AI斗兽场 - 支持回放的比赛系统
+AI竞技平台 - 支持回放的比赛系统
 自动加载所有参赛者Agent并运行比赛，同时生成回放文件
 """
 import os
@@ -31,7 +31,7 @@ def create_default_agents():
 def main():
     """主程序"""
     print("="*80)
-    print(" " * 25 + "AI斗兽场 - 支持回放的比赛")
+    print(" " * 25 + "AI竞技平台 - 支持回放的比赛")
     print("="*80)
     print()
     

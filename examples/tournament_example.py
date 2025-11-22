@@ -7,7 +7,7 @@ from tournament.tournament import RoundRobinTournament, EliminationTournament
 
 def main():
     """运行比赛示例"""
-    print("AI斗兽场 - 比赛系统示例\n")
+    print("AI竞技平台 - 比赛系统示例\n")
     
     # 创建多个Agent
     agents = [

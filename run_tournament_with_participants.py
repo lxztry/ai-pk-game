@@ -1,5 +1,5 @@
 """
-AI斗兽场 - 主程序（支持自动加载参赛者Agent）
+AI竞技平台 - 主程序（支持自动加载参赛者Agent）
 自动发现并加载participants目录下的所有Agent
 """
 import os
@@ -46,7 +46,7 @@ def create_prompt_agents():
 def main():
     """主程序"""
     print("="*80)
-    print(" " * 25 + "AI斗兽场")
+    print(" " * 25 + "AI竞技平台")
     print("="*80)
     print()
     

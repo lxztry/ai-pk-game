@@ -9,7 +9,7 @@ from visualizer.console_visualizer import ConsoleVisualizer
 
 def main():
     """运行一场简单的对战"""
-    print("AI斗兽场 - 简单对战示例\n")
+    print("AI竞技平台 - 简单对战示例\n")
     
     # 创建Agent
     agents = [

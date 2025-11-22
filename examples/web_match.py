@@ -9,7 +9,7 @@ from visualizer.web_visualizer import WebVisualizer
 
 def main():
     """运行一场对战并生成网页回放"""
-    print("AI斗兽场 - 网页版对战示例\n")
+    print("AI竞技平台 - 网页版对战示例\n")
     
     # 创建Agent
     agents = [

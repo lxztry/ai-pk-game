@@ -10,7 +10,7 @@ from game.engine import GameEngine
 
 def main():
     """运行Prompt Agent对战示例"""
-    print("AI斗兽场 - Prompt Agent示例\n")
+    print("AI竞技平台 - Prompt Agent示例\n")
     
     # 检查API Key
     api_key = os.getenv("OPENAI_API_KEY")

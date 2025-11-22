@@ -1,5 +1,5 @@
 """
-AI斗兽场 - 自动运行比赛（非交互式版本）
+AI竞技平台 - 自动运行比赛（非交互式版本）
 自动加载所有参赛者Agent并运行循环赛
 """
 import os
@@ -30,7 +30,7 @@ def create_default_agents():
 def main():
     """主程序"""
     print("="*80)
-    print(" " * 25 + "AI斗兽场 - 自动比赛")
+    print(" " * 25 + "AI竞技平台 - 自动比赛")
     print("="*80)
     print()
     

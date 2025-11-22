@@ -24,7 +24,7 @@ class TournamentGUI:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("AI斗兽场 - 比赛管理系统")
+        self.root.title("AI竞技平台 - 比赛管理系统")
         self.root.geometry("900x700")
         
         self.agents = []
@@ -38,7 +38,7 @@ class TournamentGUI:
         # 标题
         title_frame = tk.Frame(self.root)
         title_frame.pack(pady=10)
-        tk.Label(title_frame, text="AI斗兽场 - 比赛管理系统", 
+        tk.Label(title_frame, text="AI竞技平台 - 比赛管理系统", 
                 font=("Arial", 16, "bold")).pack()
         
         # Agent列表区域

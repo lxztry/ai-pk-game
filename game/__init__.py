@@ -1,5 +1,5 @@
 """
-AI斗兽场 - 游戏框架
+AI竞技平台 - 游戏框架
 """
 
 from .engine import GameEngine, GameState

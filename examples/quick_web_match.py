@@ -8,7 +8,7 @@ from visualizer.web_visualizer import WebVisualizer
 
 def main():
     """运行一场较短的对战并生成网页回放"""
-    print("AI斗兽场 - 快速网页版对战示例\n")
+    print("AI竞技平台 - 快速网页版对战示例\n")
     
     # 创建Agent
     agents = [
