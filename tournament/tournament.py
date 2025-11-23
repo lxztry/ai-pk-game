@@ -52,16 +52,18 @@ class Tournament:
         # 运行游戏并记录
         frame_interval = 2  # 每2回合记录一帧
         winner = None
+        last_state_info = None  # 保存最后一帧的状态信息
         while engine.state.turn < self.max_turns:
             state_info = engine.step()
+            last_state_info = state_info  # 保存最后一帧
             
             # 记录帧
             if self.save_replay and visualizer:
                 if engine.state.turn % frame_interval == 0:
                     visualizer.record_frame(state_info)
             
-            # 检查是否有获胜者
-            winner = engine.state.get_winner()
+            # 检查是否有获胜者（只允许在只剩一个存活者时判定）
+            winner = engine.state.get_winner(allow_score_judge=False)
             if winner:
                 # 记录最后几帧
                 if self.save_replay and visualizer:
@@ -72,7 +74,16 @@ class Tournament:
         
         # 超时后按评分判定获胜者（如果还没有）
         if winner is None:
-            winner = engine.state.get_winner()
+            # 确保记录最后一帧（如果还没有记录）
+            if self.save_replay and visualizer and last_state_info:
+                # 如果最后一帧的回合数不同，说明需要记录新帧
+                if not visualizer.replay_data or visualizer.replay_data[-1]['turn'] != last_state_info['turn']:
+                    visualizer.record_frame(last_state_info)
+            
+            winner = engine.state.get_winner(allow_score_judge=True)
+            # 如果有获胜者，更新回放数据中的获胜者信息
+            if winner and self.save_replay and visualizer:
+                visualizer.set_winner(winner.name)
         
         # 更新统计
         for agent in agents:

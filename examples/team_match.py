@@ -66,8 +66,8 @@ def main():
         if len(scored) == 1 or scored[0][1] > scored[1][1]:
             winning_team = scored[0][0]
 
-    # 输出结果
-    winner_agent = engine.state.get_winner()
+    # 输出结果（游戏结束后，允许按评分判定）
+    winner_agent = engine.state.get_winner(allow_score_judge=True)
     if winner_agent:
         print(f"胜者（个体）: {winner_agent.name} (击杀: {winner_agent.kills}, 血量: {winner_agent.health})")
     if winning_team:

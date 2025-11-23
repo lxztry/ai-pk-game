@@ -52,6 +52,15 @@ class WebVisualizer:
             pass
         self.replay_data.append(state_info.copy())
     
+    def set_winner(self, winner_name: Optional[str]):
+        """
+        设置获胜者信息（用于超时后按评分判定的情况）
+        只更新最后一帧的获胜者信息，不会影响游戏进行中的帧
+        """
+        if winner_name and self.replay_data:
+            # 只更新最后一帧的获胜者信息
+            self.replay_data[-1]['winner'] = winner_name
+    
     def _map_to_canvas(self, x: float, y: float) -> tuple:
         """将地图坐标转换为画布坐标"""
         canvas_x = int((x / self.map_width) * self.canvas_width)

@@ -44,8 +44,8 @@ def main():
         if engine.state.turn % 100 == 0:
             print(f"回合 {engine.state.turn}/{max_turns} - 存活: {state_info['alive_count']}")
         
-        # 检查是否有获胜者
-        winner = engine.state.get_winner()
+        # 检查是否有获胜者（只允许在只剩一个存活者时判定）
+        winner = engine.state.get_winner(allow_score_judge=False)
         if winner:
             # 记录最后几帧
             for _ in range(10):
@@ -53,6 +53,14 @@ def main():
                 visualizer.record_frame(state_info)
             print(f"\n游戏结束！获胜者: {winner.name} (击杀: {winner.kills})")
             break
+    
+    # 超时后按评分判定获胜者（如果还没有）
+    if winner is None:
+        winner = engine.state.get_winner(allow_score_judge=True)
+        # 如果有获胜者，更新回放数据中的获胜者信息
+        if winner:
+            visualizer.set_winner(winner.name)
+            print(f"\n游戏超时！按评分判定获胜者: {winner.name} (击杀: {winner.kills}, 血量: {winner.health})")
     
     # 生成HTML回放文件
     print("\n正在生成网页回放文件...")

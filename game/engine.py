@@ -134,13 +134,16 @@ class GameState:
         """获取存活的Agent列表"""
         return [a for a in self.agents if a.health > 0]
     
-    def get_winner(self) -> Optional[Agent]:
+    def get_winner(self, allow_score_judge: bool = False) -> Optional[Agent]:
         """
         获取获胜者
         规则：
         1. 如果只有一个存活者，直接获胜
-        2. 否则按评分判定：击杀数 > 剩余血量 > 总伤害
-        3. 完全平局时返回None
+        2. 如果有多个存活者，只有在 allow_score_judge=True 时才按评分判定
+        3. 否则返回None，让游戏继续
+        
+        Args:
+            allow_score_judge: 是否允许通过评分判定获胜者（用于超时后的判定）
         """
         alive = self.get_alive_agents()
         if len(alive) == 1:
@@ -148,15 +151,18 @@ class GameState:
         if len(alive) == 0:
             return None
         
-        # 按评分排序：击杀数 > 剩余血量
-        scored = [(a, a.kills * 10000 + a.health) for a in alive]
-        scored.sort(key=lambda x: x[1], reverse=True)
+        # 如果有多个存活者，只有在明确允许的情况下才按评分判定
+        # 这避免了游戏在早期就因为评分差异而过早结束
+        if allow_score_judge:
+            # 按评分排序：击杀数 > 剩余血量
+            scored = [(a, a.kills * 10000 + a.health) for a in alive]
+            scored.sort(key=lambda x: x[1], reverse=True)
+            
+            # 检查是否有明确的获胜者（评分最高且唯一）
+            if len(scored) > 1 and scored[0][1] > scored[1][1]:
+                return scored[0][0]
         
-        # 检查是否有明确的获胜者（评分最高且唯一）
-        if len(scored) > 1 and scored[0][1] > scored[1][1]:
-            return scored[0][0]
-        
-        # 完全平局
+        # 多个存活者且不允许评分判定，或完全平局
         return None
 
 
@@ -235,7 +241,7 @@ class GameEngine:
         return {
             'turn': self.state.turn,
             'alive_count': len(self.state.get_alive_agents()),
-            'winner': self.state.get_winner().name if self.state.get_winner() else None,
+            'winner': (winner.name if (winner := self.state.get_winner(allow_score_judge=False)) else None),
             'winning_team': self._get_winning_team(),
             'agents': [
                 {
@@ -675,7 +681,7 @@ class GameEngine:
                     for a in alive_agents:
                         print(f"  - {a.name}: 血量={a.health}, 位置={a.position}")
                     # 强制结束，返回当前评分最高的
-                    winner = self.state.get_winner()
+                    winner = self.state.get_winner(allow_score_judge=True)
                     if winner:
                         return winner
                     # 如果没有明确获胜者，返回评分最高的
@@ -685,14 +691,14 @@ class GameEngine:
                         return scored[0][0] if scored else None
                     return None
             
-            winner = self.state.get_winner()
+            winner = self.state.get_winner(allow_score_judge=False)
             if winner:
                 if verbose:
                     print(f"游戏结束！获胜者: {winner.name} (击杀: {winner.kills}, 血量: {winner.health})")
                 return winner
         
         # 超时后按评分判定获胜者
-        winner = self.state.get_winner()
+        winner = self.state.get_winner(allow_score_judge=True)
         if winner:
             if verbose:
                 print(f"游戏超时（{max_turns}回合），按评分判定获胜者: {winner.name} (击杀: {winner.kills}, 血量: {winner.health})")

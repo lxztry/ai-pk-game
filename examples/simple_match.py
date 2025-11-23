@@ -37,8 +37,8 @@ def main():
                 visualizer.render(state_info, clear=True)
                 time.sleep(0.2)
             
-            # 检查是否有获胜者
-            winner = engine.state.get_winner()
+            # 检查是否有获胜者（只允许在只剩一个存活者时判定）
+            winner = engine.state.get_winner(allow_score_judge=False)
             if winner:
                 visualizer.render(state_info, clear=True)
                 print(f"\n{winner.name} 获胜！")
