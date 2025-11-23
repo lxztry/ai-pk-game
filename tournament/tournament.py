@@ -13,7 +13,7 @@ class Tournament:
     """比赛基类（支持回放）"""
     
     def __init__(self, agents: List[Agent], map_width: int = 100, map_height: int = 100,
-                 save_replay: bool = True, replay_dir: str = "replays", max_turns: int = 2000):
+                 save_replay: bool = True, replay_dir: str = "replays", max_turns: int = 500):
         self.agents = agents
         self.map_width = map_width
         self.map_height = map_height

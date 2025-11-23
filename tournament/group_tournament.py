@@ -22,7 +22,7 @@ class GroupTournament:
                  map_height: int = 100,
                  save_replay: bool = True,
                  replay_dir: str = "replays",
-                 max_turns: int = 2000):
+                 max_turns: int = 500):
         """
         初始化分组比赛
         
@@ -34,7 +34,7 @@ class GroupTournament:
             map_height: 地图高度
             save_replay: 是否保存回放
             replay_dir: 回放文件目录
-            max_turns: 最大轮次（默认2000）
+            max_turns: 最大轮次（默认500）
         """
         self.agents = agents
         self.group_size = group_size

@@ -30,7 +30,7 @@ def main():
     print("（这将生成一个HTML文件，可在浏览器中查看精美的游戏回放）\n")
     
     # 运行游戏并记录每一帧
-    max_turns = 2000
+    max_turns = 500
     frame_interval = 2  # 每2回合记录一帧（减少文件大小）
     
     while engine.state.turn < max_turns:

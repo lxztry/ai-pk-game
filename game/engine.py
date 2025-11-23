@@ -49,7 +49,7 @@ class GameState:
         self.obstacles: List[Dict[str, Any]] = []
         self.supplies: List[Dict[str, Any]] = []   # {position:(x,y), type: 'health'|'ammo_shotgun'|'ammo_sniper'|'ammo_rocket'|'weapon_shotgun'|'weapon_sniper'|'weapon_rocket'}
         self.turn = 0
-        self.max_turns = 2000  # 最大回合数，防止无限循环
+        self.max_turns = 500  # 最大回合数，防止无限循环
         
         # 初始化Agent位置（随机分布）
         self._initialize_positions()
@@ -604,7 +604,7 @@ class GameEngine:
                     self.state.supplies.remove(s)
 
     
-    def run(self, max_turns: int = 2000, verbose: bool = False, 
+    def run(self, max_turns: int = 500, verbose: bool = False, 
             enable_timeout: bool = True, timeout_seconds: float = 60.0) -> Optional[Agent]:
         """
         运行游戏直到结束

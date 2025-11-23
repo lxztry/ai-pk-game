@@ -120,7 +120,7 @@ class TournamentGUI:
         max_turns_frame = tk.Frame(settings_frame)
         max_turns_frame.pack(fill=tk.X, pady=5)
         tk.Label(max_turns_frame, text="最大轮次:").pack(side=tk.LEFT, padx=5)
-        self.max_turns_var = tk.IntVar(value=2000)
+        self.max_turns_var = tk.IntVar(value=500)
         max_turns_spin = tk.Spinbox(max_turns_frame, from_=100, to=10000, 
                                     textvariable=self.max_turns_var, width=8, increment=100)
         max_turns_spin.pack(side=tk.LEFT, padx=5)

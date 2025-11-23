@@ -29,7 +29,7 @@ def main():
     
     try:
         # 运行游戏并实时显示
-        while engine.state.turn < 2000:
+        while engine.state.turn < 500:
             state_info = engine.step()
             
             # 每5回合显示一次

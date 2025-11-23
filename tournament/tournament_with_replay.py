@@ -53,7 +53,7 @@ class TournamentWithReplay:
         frame_interval = 2  # 每2回合记录一帧
         winner = None
         last_state_info = None  # 保存最后一帧的状态信息
-        while engine.state.turn < 2000:
+        while engine.state.turn < 500:
             state_info = engine.step()
             last_state_info = state_info  # 保存最后一帧
             

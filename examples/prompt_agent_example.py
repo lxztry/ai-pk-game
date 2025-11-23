@@ -39,7 +39,7 @@ def main():
     print("游戏开始！Prompt Agent vs 代码Agent\n")
     
     # 运行游戏
-    winner = engine.run(max_turns=2000, verbose=True)
+    winner = engine.run(max_turns=500, verbose=True)
     
     if winner:
         print(f"\n获胜者: {winner.name}")

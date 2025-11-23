@@ -6,7 +6,7 @@
 
 - 🎮 **完整的游戏系统**：障碍物、补给、多种武器、团队对战
 - 🤖 **灵活的AI开发**：支持Prompt派和代码派两种开发方式
-- 🏆 **完善的比赛系统**：循环赛、淘汰赛、分组比赛
+- 🏆 **完善的比赛系统**：循环赛、淘汰赛、分组比赛、在线对战
 - 📊 **精美的可视化**：网页版回放、命令行实时显示
 - ⚖️ **智能获胜判定**：防止过早结束，超时后按评分判定
 - 🔄 **自动回放生成**：所有比赛自动生成HTML回放文件
@@ -49,7 +49,7 @@
 ### 获胜条件
 
 1. **直接获胜**：成为唯一存活的Agent
-2. **超时判定**：达到最大回合数（默认2000回合）后，按评分判定获胜者
+2. **超时判定**：达到最大回合数（默认500回合）后，按评分判定获胜者
    - 评分规则：击杀数 × 10000 + 剩余血量
    - 评分最高者获胜
 3. **团队模式**：在团队对战中，当只剩一个队伍存活时，该队伍获胜
@@ -105,7 +105,27 @@ python examples/tournament_example.py
 python examples/team_match.py
 ```
 
-### 5. Prompt Agent示例
+### 5. 在线对战系统（新功能）✨
+
+启动Web服务器，在线选择对手进行对战，查看积分排名：
+
+```bash
+# 启动服务器
+python run_online_server.py
+
+# 在浏览器中访问 http://localhost:5000
+```
+
+**功能特性**：
+- 🎮 在线选择对手进行对战
+- 🏆 实时积分排名系统
+- 📊 对战历史记录
+- 🎬 自动生成回放文件
+- ⚡ 异步对战，不阻塞界面
+
+详细说明请查看 [ONLINE_GUIDE.md](ONLINE_GUIDE.md)
+
+### 6. Prompt Agent示例
 
 使用LLM驱动的Agent（需要OpenAI API Key）：
 
@@ -139,6 +159,13 @@ pk/
 │   ├── tournament.py     # 循环赛、淘汰赛
 │   ├── tournament_with_replay.py  # 支持回放的比赛系统
 │   └── group_tournament.py  # 分组比赛系统（适合大规模参赛）
+├── online/               # 在线对战系统
+│   ├── __init__.py
+│   ├── database.py       # 数据库管理（SQLite）
+│   ├── server.py         # Flask Web服务器
+│   ├── templates/        # Web界面模板
+│   │   └── index.html
+│   └── static/           # 静态文件
 ├── utils/                # 工具模块
 │   ├── __init__.py
 │   └── agent_loader.py   # Agent自动加载器
@@ -155,9 +182,11 @@ pk/
 │   └── prompt_agent_example.py  # Prompt Agent示例
 ├── run_tournament.py              # 主程序（使用默认Agent）
 ├── run_tournament_with_participants.py  # 主程序（自动加载参赛者）
+├── run_online_server.py           # 启动在线对战服务器
 ├── requirements.txt
 ├── README.md
-└── PARTICIPANTS_GUIDE.md  # 参赛者详细指南
+├── PARTICIPANTS_GUIDE.md          # 参赛者详细指南
+└── ONLINE_GUIDE.md                # 在线对战系统使用指南
 ```
 
 ## 如何参与
@@ -357,7 +386,7 @@ agent4.team_id = 2
 
 # 运行团队对战
 engine = GameEngine([agent1, agent2, agent3, agent4])
-winner = engine.run(max_turns=2000)
+winner = engine.run(max_turns=500)
 ```
 
 ## 回放系统
@@ -428,6 +457,7 @@ visualizer.render(state_info)
 - 循环赛：每个Agent与其他所有Agent对战
 - 淘汰赛：单败淘汰制
 - 分组比赛：适合大规模参赛者（200+人）
+- 在线对战：Web界面选择对手，实时积分排名
 - 自动回放生成：所有比赛自动生成HTML回放文件
 
 ✅ **精美的可视化**
