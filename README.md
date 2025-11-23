@@ -2,6 +2,15 @@
 
 一个游戏化的AI竞技平台，通过统一框架让参与者通过Prompt工程或代码编写来优化AI Agent，进行自动对战。
 
+## ✨ 主要特性
+
+- 🎮 **完整的游戏系统**：障碍物、补给、多种武器、团队对战
+- 🤖 **灵活的AI开发**：支持Prompt派和代码派两种开发方式
+- 🏆 **完善的比赛系统**：循环赛、淘汰赛、分组比赛
+- 📊 **精美的可视化**：网页版回放、命令行实时显示
+- ⚖️ **智能获胜判定**：防止过早结束，超时后按评分判定
+- 🔄 **自动回放生成**：所有比赛自动生成HTML回放文件
+
 ## 核心概念
 
 在一个统一的游戏项目框架下（策略射击游戏），每位参与者扮演一个"AI驯兽师"。他们通过以下两种方式之一来控制和优化自己的游戏角色（AI Agent）：
@@ -15,20 +24,41 @@
 
 ### 游戏模式：策略射击游戏
 
-- **场地**：一个二维网格（默认100x100）
+- **场地**：一个二维网格（默认100x100），包含随机生成的障碍物（矩形墙体）
 - **角色**：每个玩家控制一个特工
 - **目标**：击败所有其他特工，成为最后存活者
 - **核心动作**：
-  - **移动**：上下左右移动
+  - **移动**：上下左右移动（会被障碍物阻挡）
   - **转向**：改变面向方向
   - **射击**：向面向方向发射子弹，有冷却时间
-  - **观察**：获取周围环境信息（视野内的敌人位置、距离、自己的血量等）
+  - **观察**：获取周围环境信息（视野内的敌人、子弹、障碍物、补给等）
+
+### 游戏元素
+
+- **障碍物**：地图上随机生成的矩形墙体，可以阻挡移动和子弹
+- **补给系统**：
+  - **血量包**：恢复25点血量
+  - **弹药**：为特殊武器补充弹药
+  - **武器**：拾取特殊武器（霰弹枪、狙击枪、火箭筒）
+- **武器系统**：
+  - **普通武器**：基础伤害10，冷却20回合
+  - **霰弹枪**：三发散射，每发伤害8，冷却25回合
+  - **狙击枪**：高伤害25，高速子弹，冷却35回合
+  - **火箭筒**：伤害20，带溅射效果，冷却40回合
+
+### 获胜条件
+
+1. **直接获胜**：成为唯一存活的Agent
+2. **超时判定**：达到最大回合数（默认2000回合）后，按评分判定获胜者
+   - 评分规则：击杀数 × 10000 + 剩余血量
+   - 评分最高者获胜
+3. **团队模式**：在团队对战中，当只剩一个队伍存活时，该队伍获胜
 
 ## 安装
 
 ```bash
 # 克隆或下载项目
-cd pk
+cd ai-pk-game
 
 # 安装依赖
 pip install -r requirements.txt
@@ -67,7 +97,15 @@ python examples/simple_match.py
 python examples/tournament_example.py
 ```
 
-### 4. Prompt Agent示例
+### 4. 团队对战示例
+
+运行多人组队对战：
+
+```bash
+python examples/team_match.py
+```
+
+### 5. Prompt Agent示例
 
 使用LLM驱动的Agent（需要OpenAI API Key）：
 
@@ -98,7 +136,9 @@ pk/
 │   └── ...               # 其他参赛者的目录
 ├── tournament/           # 比赛系统
 │   ├── __init__.py
-│   └── tournament.py     # 循环赛、淘汰赛
+│   ├── tournament.py     # 循环赛、淘汰赛
+│   ├── tournament_with_replay.py  # 支持回放的比赛系统
+│   └── group_tournament.py  # 分组比赛系统（适合大规模参赛）
 ├── utils/                # 工具模块
 │   ├── __init__.py
 │   └── agent_loader.py   # Agent自动加载器
@@ -109,8 +149,10 @@ pk/
 ├── examples/             # 示例代码
 │   ├── simple_match.py      # 命令行实时对战
 │   ├── web_match.py         # 网页版对战（推荐）
-│   ├── tournament_example.py
-│   └── prompt_agent_example.py
+│   ├── quick_web_match.py   # 快速网页版对战
+│   ├── tournament_example.py  # 比赛系统示例
+│   ├── team_match.py        # 团队对战示例
+│   └── prompt_agent_example.py  # Prompt Agent示例
 ├── run_tournament.py              # 主程序（使用默认Agent）
 ├── run_tournament_with_participants.py  # 主程序（自动加载参赛者）
 ├── requirements.txt
@@ -185,6 +227,16 @@ class MyCodeAgent(CodeAgent):
             closest = min(enemies, key=lambda e: e['distance'])
             # ... 实现攻击逻辑
             return "shoot"
+        
+        # 检查是否有补给
+        if observation.supplies_in_view:
+            closest_supply = min(observation.supplies_in_view, key=lambda s: s['distance'])
+            # 移动到补给位置...
+        
+        # 检查障碍物
+        if observation.obstacles_in_view:
+            # 避开障碍物...
+        
         return "move_up"
 ```
 
@@ -203,13 +255,33 @@ class MyCodeAgent(CodeAgent):
 
 Agent的 `step` 方法接收一个 `Observation` 对象，包含：
 
-- `my_health`: 当前血量
+- `my_health`: 当前血量（0-100）
 - `my_position`: 当前位置 (x, y)
-- `my_direction`: 当前方向向量 (dx, dy)
-- `enemies_in_view`: 视野内的敌人列表
-- `bullets_in_view`: 视野内的子弹列表
+- `my_direction`: 当前方向向量 (dx, dy)，已标准化
+- `my_team`: 队伍ID（团队模式使用）
+- `my_weapon`: 当前武器类型（'normal' | 'shotgun' | 'sniper' | 'rocket'）
+- `my_ammo`: 当前武器的弹药数（特殊武器需要弹药，普通武器为None）
+- `enemies_in_view`: 视野内的敌人列表，每个敌人包含：
+  - `name`: 敌人名称
+  - `position`: 位置 [x, y]
+  - `health`: 血量
+  - `direction`: 方向向量
+  - `distance`: 距离
+  - `team_id`: 队伍ID
+- `bullets_in_view`: 视野内的子弹列表，每个子弹包含：
+  - `position`: 位置 [x, y]
+  - `direction`: 方向向量
+  - `distance`: 距离
+- `obstacles_in_view`: 视野内的障碍物列表，每个障碍物包含：
+  - `rect`: 矩形区域 [x, y, width, height]
+  - `nearest_point`: 最近点 [x, y]
+  - `distance`: 距离
+- `supplies_in_view`: 视野内的补给列表，每个补给包含：
+  - `position`: 位置 [x, y]
+  - `type`: 类型（'health' | 'ammo_shotgun' | 'ammo_sniper' | 'ammo_rocket' | 'weapon_shotgun' | 'weapon_sniper' | 'weapon_rocket'）
+  - `distance`: 距离
 - `map_boundary`: 地图边界 [width, height]
-- `shoot_cooldown`: 射击冷却时间
+- `shoot_cooldown`: 射击冷却时间（0表示可以射击）
 
 ### 可用动作
 
@@ -263,11 +335,48 @@ tournament = GroupTournament(
 result = tournament.run(verbose=True)
 ```
 
+### 团队对战
+
+支持多人组队对战模式：
+
+```python
+from agents.code_agent import AggressiveAgent, DefensiveAgent
+from game.engine import GameEngine
+
+# 创建Agent并设置队伍
+agent1 = AggressiveAgent("TeamA_Player1")
+agent2 = DefensiveAgent("TeamA_Player2")
+agent3 = AggressiveAgent("TeamB_Player1")
+agent4 = DefensiveAgent("TeamB_Player2")
+
+# 设置队伍ID（同队不互相伤害）
+agent1.team_id = 1
+agent2.team_id = 1
+agent3.team_id = 2
+agent4.team_id = 2
+
+# 运行团队对战
+engine = GameEngine([agent1, agent2, agent3, agent4])
+winner = engine.run(max_turns=2000)
+```
+
+## 回放系统
+
+所有比赛系统都支持自动生成HTML回放文件：
+
+- **自动保存**：每场比赛结束后自动生成回放文件
+- **完整记录**：记录游戏过程中的所有状态（Agent位置、血量、击杀数等）
+- **获胜者显示**：正确显示通过击杀或超时评分判定的获胜者
+- **播放控制**：支持播放/暂停、加速/减速、时间轴拖拽
+- **统计信息**：实时显示回合数、存活人数、获胜者等信息
+
+回放文件保存在 `replays/` 目录下，可以直接在浏览器中打开查看。
+
 ## 可视化
 
 项目提供两种可视化方式：
 
-### 网页版可视化（推荐）
+### 网页版可视化（推荐）✨
 
 生成精美的HTML回放文件，在浏览器中查看：
 
@@ -278,8 +387,18 @@ visualizer = WebVisualizer(map_width=100, map_height=100)
 # 记录游戏过程
 visualizer.record_frame(state_info)
 # 生成HTML文件
-visualizer.render_replay(output_file="game_replay.html")
+html_file = visualizer.generate_html(output_file="game_replay.html", auto_play=True, fps=15)
 ```
+
+**功能特性**：
+- 🎨 精美的图形界面和动画效果
+- 🎯 实时显示Agent位置、方向、血量条
+- 💥 子弹轨迹和碰撞效果
+- 🏗️ 障碍物可视化
+- 📦 补给物品显示
+- 📊 实时统计信息面板（回合数、存活人数、获胜者等）
+- ⏯️ 播放控制（播放/暂停/加速/减速/时间轴拖拽）
+- ⌨️ 键盘快捷键支持（空格播放/暂停，左右箭头逐帧）
 
 ### 命令行可视化
 
@@ -292,13 +411,41 @@ visualizer = ConsoleVisualizer(map_width=100, map_height=100)
 visualizer.render(state_info)
 ```
 
+## 主要特性
+
+✅ **完整的游戏系统**
+- 障碍物系统（矩形墙体，阻挡移动和子弹）
+- 补给系统（血量包、弹药、武器）
+- 多种武器（普通、霰弹枪、狙击枪、火箭筒）
+- 团队对战支持
+
+✅ **智能获胜判定**
+- 直接获胜：唯一存活者
+- 超时判定：按评分判定（击杀数 > 剩余血量）
+- 防止过早结束：游戏进行中不会因评分差异而提前结束
+
+✅ **完善的比赛系统**
+- 循环赛：每个Agent与其他所有Agent对战
+- 淘汰赛：单败淘汰制
+- 分组比赛：适合大规模参赛者（200+人）
+- 自动回放生成：所有比赛自动生成HTML回放文件
+
+✅ **精美的可视化**
+- 网页版回放：支持播放控制、时间轴、统计信息
+- 命令行实时显示：适合调试和快速测试
+
+✅ **灵活的开发方式**
+- Prompt派：通过自然语言Prompt控制Agent
+- 代码派：直接编写Python代码实现策略
+- 自动加载：支持从participants目录自动加载所有参赛者
+
 ## 扩展建议
 
-1. **添加新游戏元素**：障碍物、补给包、特殊武器等
-2. **改进可视化**：使用pygame或其他图形库创建图形界面
-3. **添加更多统计**：胜率、平均存活时间等
-4. **支持团队战**：多人组队对战模式
-5. **录制回放**：保存比赛录像供后续分析
+1. **添加新游戏元素**：更多武器类型、特殊技能、地图机制等
+2. **改进AI策略**：使用强化学习训练Agent
+3. **添加更多统计**：胜率、平均存活时间、伤害统计等
+4. **网络对战**：支持在线多人对战
+5. **AI分析工具**：分析Agent策略、生成策略报告
 
 ## 贡献
 
