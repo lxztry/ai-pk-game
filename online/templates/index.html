@@ -221,6 +221,22 @@
                 </div>
                 <div class="match-controls" id="match-controls" style="display: none;">
                     <div class="match-info" id="selected-players"></div>
+                    <div class="match-settings" style="margin: 15px 0;">
+                        <label for="max-turns-input" style="display: block; margin-bottom: 5px;">
+                            最大回合数（默认500）:
+                        </label>
+                        <input 
+                            type="number" 
+                            id="max-turns-input" 
+                            value="500" 
+                            min="50" 
+                            max="2000" 
+                            style="padding: 8px; border-radius: 5px; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.1); color: white; width: 150px; font-size: 14px;"
+                        />
+                        <small style="display: block; margin-top: 5px; opacity: 0.8; font-size: 12px;">
+                            范围：50-2000回合
+                        </small>
+                    </div>
                     <button onclick="startMatch()">开始对战</button>
                 </div>
                 <div id="match-status"></div>
@@ -362,6 +378,16 @@
                 return;
             }
             
+            // 获取回合数配置
+            const maxTurnsInput = document.getElementById('max-turns-input');
+            let maxTurns = parseInt(maxTurnsInput.value, 10);
+            
+            // 验证回合数范围
+            if (isNaN(maxTurns) || maxTurns < 50 || maxTurns > 2000) {
+                alert('回合数必须在50-2000之间！');
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/match/start', {
                     method: 'POST',
@@ -370,7 +396,8 @@
                     },
                     body: JSON.stringify({
                         player1: selectedPlayer1.name,
-                        player2: selectedPlayer2.name
+                        player2: selectedPlayer2.name,
+                        max_turns: maxTurns
                     })
                 });
                 

@@ -33,7 +33,7 @@ match_queue = []
 match_results = {}
 
 
-def run_match(player1_name: str, player2_name: str, match_id: str):
+def run_match(player1_name: str, player2_name: str, match_id: str, max_turns: int = 500):
     """在后台线程中运行对战"""
     try:
         # 确保使用项目根目录的绝对路径
@@ -68,7 +68,6 @@ def run_match(player1_name: str, player2_name: str, match_id: str):
         frame_interval = 2
         winner = None
         last_state_info = None
-        max_turns = 500
         
         # 超时保护：防止游戏卡住
         match_start_time = time_module.time()
@@ -218,6 +217,7 @@ def start_match():
     data = request.json
     player1_name = data.get('player1')
     player2_name = data.get('player2')
+    max_turns = data.get('max_turns', 500)  # 可选参数，默认500
     
     if not player1_name or not player2_name:
         return jsonify({'error': 'Missing player names'}), 400
@@ -225,11 +225,19 @@ def start_match():
     if player1_name == player2_name:
         return jsonify({'error': 'Cannot match player with itself'}), 400
     
+    # 验证回合数范围
+    try:
+        max_turns = int(max_turns)
+        if max_turns < 50 or max_turns > 2000:
+            return jsonify({'error': 'max_turns must be between 50 and 2000'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'error': 'max_turns must be a valid integer'}), 400
+    
     # 生成匹配ID
     match_id = f"{player1_name}_vs_{player2_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     # 在后台线程中运行对战
-    thread = threading.Thread(target=run_match, args=(player1_name, player2_name, match_id))
+    thread = threading.Thread(target=run_match, args=(player1_name, player2_name, match_id, max_turns))
     thread.daemon = True
     thread.start()
     
