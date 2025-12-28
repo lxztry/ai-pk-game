@@ -64,14 +64,58 @@ def run_match(player1_name: str, player2_name: str, match_id: str):
         engine = GameEngine([agent1, agent2], map_width=100, map_height=100)
         
         # 运行游戏
+        import time as time_module
         frame_interval = 2
         winner = None
         last_state_info = None
         max_turns = 500
         
+        # 超时保护：防止游戏卡住
+        match_start_time = time_module.time()
+        max_match_time = 120.0  # 最大对战时间120秒
+        last_progress_time = match_start_time
+        last_alive_count = len([a for a in engine.state.agents if a.health > 0])
+        consecutive_no_progress = 0
+        max_no_progress_turns = 100  # 连续100回合没有进展则判定为卡住
+        
         while engine.state.turn < max_turns:
-            state_info = engine.step()
+            # 检查总超时
+            elapsed_time = time_module.time() - match_start_time
+            if elapsed_time > max_match_time:
+                print(f"警告: 对战 {match_id} 超过最大时间限制 ({max_match_time}秒)，强制结束")
+                break
+            
+            # 执行一步
+            step_start_time = time_module.time()
+            try:
+                state_info = engine.step()
+                step_elapsed = time_module.time() - step_start_time
+                
+                # 如果单步执行时间过长，警告
+                if step_elapsed > 2.0:
+                    print(f"警告: 回合 {engine.state.turn} 执行时间过长 ({step_elapsed:.2f}秒)")
+            except Exception as e:
+                print(f"错误: 回合 {engine.state.turn} 执行出错: {e}")
+                import traceback
+                traceback.print_exc()
+                break
+            
             last_state_info = state_info
+            
+            # 检查是否有进展（存活人数变化或回合数增加）
+            current_alive_count = state_info.get('alive_count', 0)
+            if current_alive_count != last_alive_count:
+                last_progress_time = time_module.time()
+                consecutive_no_progress = 0
+                last_alive_count = current_alive_count
+            else:
+                consecutive_no_progress += 1
+                # 如果连续很多回合没有进展，可能卡住了
+                if consecutive_no_progress >= max_no_progress_turns:
+                    time_since_progress = time_module.time() - last_progress_time
+                    if time_since_progress > 30.0:  # 30秒没有进展
+                        print(f"警告: 对战 {match_id} 连续 {consecutive_no_progress} 回合没有进展，可能卡住，强制结束")
+                        break
             
             if engine.state.turn % frame_interval == 0:
                 visualizer.record_frame(state_info)
@@ -79,8 +123,12 @@ def run_match(player1_name: str, player2_name: str, match_id: str):
             winner = engine.state.get_winner(allow_score_judge=False)
             if winner:
                 for _ in range(10):
-                    state_info = engine.step()
-                    visualizer.record_frame(state_info)
+                    try:
+                        state_info = engine.step()
+                        visualizer.record_frame(state_info)
+                    except Exception as e:
+                        print(f"错误: 记录最后帧时出错: {e}")
+                        break
                 break
         
         # 超时后按评分判定

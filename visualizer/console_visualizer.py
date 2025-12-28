@@ -69,11 +69,26 @@ class ConsoleVisualizer:
         display[self.display_height - 1][0] = '+'
         display[self.display_height - 1][self.display_width - 1] = '+'
         
-        # 绘制子弹（使用ASCII字符）
+        # 绘制子弹（不同武器使用不同字符）
         for bullet in state_info['bullets']:
             x, y = self._map_to_display(bullet['position'][0], bullet['position'][1])
             if 0 < x < self.display_width - 1 and 0 < y < self.display_height - 1:
-                display[y][x] = '*'
+                kind = bullet.get('kind', 'normal')
+                # 不同武器使用不同字符
+                if kind == 'shotgun':
+                    # 霰弹枪：使用多个点
+                    for offset in [-1, 0, 1]:
+                        if 0 < x + offset < self.display_width - 1:
+                            display[y][x + offset] = '.'
+                elif kind == 'sniper':
+                    # 狙击枪：使用竖线
+                    display[y][x] = '|'
+                elif kind == 'rocket':
+                    # 火箭筒：使用大字符
+                    display[y][x] = 'O'
+                else:
+                    # 普通子弹：使用星号
+                    display[y][x] = '*'
         
         # 绘制Agent
         for agent_info in state_info['agents']:

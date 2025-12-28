@@ -55,6 +55,8 @@ class GameState:
         self._initialize_positions()
         # 初始化障碍物
         self._initialize_obstacles()
+        # 在游戏开始时放置少量武器和弹药，确保玩家能找到并使用特殊武器
+        self._initialize_starting_supplies()
     
     def _initialize_positions(self):
         """初始化Agent位置"""
@@ -130,6 +132,53 @@ class GameState:
         # 保存
         self.obstacles = [{'rect': (x, y, w, h)} for (x, y, w, h) in placed]
     
+    def _initialize_starting_supplies(self):
+        """在游戏开始时放置少量武器和弹药，确保玩家能找到并使用特殊武器"""
+        # 放置2-3个武器，分散在地图上
+        weapon_types = ['weapon_rocket', 'weapon_sniper', 'weapon_shotgun']
+        ammo_types = ['ammo_rocket', 'ammo_sniper', 'ammo_shotgun']
+        
+        # 随机选择2-3个武器类型
+        num_weapons = random.randint(2, 3)
+        selected_weapons = random.sample(list(range(3)), num_weapons)
+        
+        def _is_blocked(pos):
+            """检查位置是否被障碍物阻挡"""
+            radius = 2.0
+            x, y = pos
+            for obs in self.obstacles:
+                rx, ry, rw, rh = obs['rect']
+                if (rx - radius) <= x <= (rx + rw + radius) and (ry - radius) <= y <= (ry + rh + radius):
+                    return True
+            return False
+        
+        for idx in selected_weapons:
+            # 随机位置，避开障碍物
+            for _ in range(30):
+                x = random.uniform(20, self.map_width - 20)
+                y = random.uniform(20, self.map_height - 20)
+                if not _is_blocked((x, y)):
+                    # 放置武器
+                    self.supplies.append({
+                        'position': (x, y),
+                        'type': weapon_types[idx]
+                    })
+                    # 在武器附近放置对应的弹药（1-2个）
+                    num_ammo = random.randint(1, 2)
+                    for _ in range(num_ammo):
+                        for _ in range(20):
+                            ax = x + random.uniform(-8, 8)
+                            ay = y + random.uniform(-8, 8)
+                            ax = max(10, min(self.map_width - 10, ax))
+                            ay = max(10, min(self.map_height - 10, ay))
+                            if not _is_blocked((ax, ay)):
+                                self.supplies.append({
+                                    'position': (ax, ay),
+                                    'type': ammo_types[idx]
+                                })
+                                break
+                    break
+    
     def get_alive_agents(self) -> List[Agent]:
         """获取存活的Agent列表"""
         return [a for a in self.agents if a.health > 0]
@@ -173,8 +222,8 @@ class GameEngine:
         self.state = GameState(agents, map_width, map_height)
         self.view_distance = 30.0  # 视野距离
         # 供应生成参数
-        self.supply_spawn_chance = 0.02  # 每回合生成概率
-        self.max_supplies = 8
+        self.supply_spawn_chance = 0.03  # 每回合生成概率（提高以确保有足够补给）
+        self.max_supplies = 12  # 增加最大补给数量
     
     def step(self) -> Dict[str, Any]:
         """
@@ -202,11 +251,23 @@ class GameEngine:
             # Agent决策（带超时保护）
             try:
                 start_time = time.time()
-                action = agent.step(observation)
+                # 设置超时限制：如果Agent执行超过3秒，强制返回idle
+                action = None
+                try:
+                    action = agent.step(observation)
+                except Exception as e:
+                    print(f"Agent {agent.name} step() 方法抛出异常 (回合 {self.state.turn}): {e}")
+                    import traceback
+                    traceback.print_exc()
+                    action = "idle"
+                
                 elapsed = time.time() - start_time
                 
-                # 如果执行时间过长，警告
-                if elapsed > 1.0:  # 超过1秒
+                # 如果执行时间过长，警告并强制使用idle
+                if elapsed > 3.0:  # 超过3秒，认为卡住
+                    print(f"警告: Agent {agent.name} 执行时间过长 ({elapsed:.2f}秒)，回合 {self.state.turn}，强制使用 'idle'")
+                    action = "idle"
+                elif elapsed > 1.0:  # 超过1秒，警告
                     print(f"警告: Agent {agent.name} 执行时间过长 ({elapsed:.2f}秒)，回合 {self.state.turn}")
                 
                 # 验证动作有效性
@@ -564,10 +625,13 @@ class GameEngine:
         if len(self.state.supplies) >= self.max_supplies:
             return
         if random.random() < self.supply_spawn_chance:
+            # 提高武器和弹药的比例，确保玩家能找到并使用特殊武器
             kinds = [
-                'health', 'health',
-                'ammo_shotgun', 'ammo_sniper', 'ammo_rocket',
-                'weapon_shotgun', 'weapon_sniper', 'weapon_rocket'
+                'health',  # 血包
+                'ammo_shotgun', 'ammo_sniper', 'ammo_rocket',  # 弹药
+                'ammo_shotgun', 'ammo_sniper', 'ammo_rocket',  # 更多弹药
+                'weapon_shotgun', 'weapon_sniper', 'weapon_rocket',  # 武器
+                'weapon_shotgun', 'weapon_sniper', 'weapon_rocket',  # 更多武器
             ]
             k = random.choice(kinds)
             # 生成在不与障碍重叠的位置
