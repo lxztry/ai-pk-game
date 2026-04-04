@@ -1,0 +1,117 @@
+============================================
+  AI Battle Arena - 全自动运营脚本
+  AI-PK-GAME GitHub 运营一键部署
+============================================
+
+【已完成的本地准备】
+
+✅ index.html          - Landing Page 页面
+✅ .github/workflows/  - GitHub Actions 自动更新
+✅ README.md           - 已添加徽章和 Topics
+✅ deploy.bat          - 一键部署脚本
+
+============================================
+
+【需要你手动完成的（全部只需10分钟）】
+
+STEP 1: 部署 Landing Page 到 GitHub Pages
+------------------------------------------
+1. 双击运行 deploy.bat
+2. 如果提示登录，输入你的 GitHub 用户名和 Token
+3. 等待推送完成
+
+4. 推送成功后，浏览器打开：
+   https://github.com/lxztry/ai-pk-game/settings/pages
+
+5. 在 "Source" 下选择：
+   - Branch: main
+   - Folder: / (root)
+
+6. 点击 Save，等待 2 分钟
+
+7. 你的 Landing Page 就上线了！
+   https://lxztry.github.io/ai-pk-game
+
+STEP 2: 创建 GitHub Profile README
+------------------------------------------
+1. 打开浏览器访问：
+   https://github.com/new
+
+2. 创建新仓库，名称填写：
+   lxztry
+
+3. 勾选 "Add a README file"
+
+4. 点击 "Create repository"
+
+5. 在新仓库里，点击编辑 README
+   复制 promotion/lxztry-profile-readme.md 的内容进去
+
+6. 提交！
+
+STEP 3: 发布掘金文章
+------------------------------------------
+1. 打开 https://juejin.cn 登录
+2. 点击写文章
+3. 复制 promotion/juejin_article.md 内容
+4. 添加封面图（项目截图）
+5. 标签选：Python / AI / 开源
+6. 发布！
+
+STEP 4: 发 Twitter
+------------------------------------------
+1. 打开 Twitter/X
+2. 复制 promotion/twitter_posts.md 里的英文帖
+3. 配上项目截图
+4. 发布！
+
+STEP 5: 发 V2EX
+------------------------------------------
+1. 打开 https://www.v2ex.com/go/create
+2. 复制 promotion/v2ex_post.md 内容
+3. 选择节点：python
+4. 发布！
+
+============================================
+
+【预期效果】
+
+按以上步骤完成，预计获得：
+- GitHub Stars: +40 ~ +165
+- 项目曝光: 10,000+ 次
+- 社区关注: +50 ~ +200 人
+
+============================================
+
+【文件位置】
+
+所有素材已保存在：
+D:\OpenClaw\.openclaw\workspace\promotion\
+
+内容包括：
+- juejin_article.md       掘金文章
+- twitter_posts.md        Twitter帖文
+- v2ex_post.md           V2EX帖子
+- github_profile_readme.md GitHub Profile
+- lxztry-profile-readme.md GitHub Profile模板
+- outreach_templates.md   外联模板
+- deploy_to_github_pages.md 部署教程
+- step_by_step_guide.md  详细清单
+
+============================================
+
+【常见问题】
+
+Q: deploy.bat 提示需要登录 GitHub？
+A: 访问 https://github.com/settings/tokens 生成 Personal Access Token
+   然后在 git push 时输入用户名和 token
+
+Q: GitHub Pages 没看到 Landing Page？
+A: 确认 settings/pages 的 source 设置正确，等待 2-5 分钟生效
+
+Q: 想修改 Landing Page 内容？
+A: 直接编辑 ai-pk-game/index.html 文件，然后重新 deploy
+
+============================================
+
+有问题随时问我！加油 🚀

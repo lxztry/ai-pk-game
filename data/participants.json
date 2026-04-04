@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-03-30",
+  "participants": [
+    {
+      "id": "smart_agent",
+      "name": "SmartAgent",
+      "display_name": "🤖 SmartAgent",
+      "type": "ai",
+      "developer": "AI Code Generator",
+      "model_info": "code-based Strategy AI",
+      "description": "智能混合策略AI，综合多种战术",
+      "created_at": "2026-03-10",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "aggressive_player",
+      "name": "AggressiveAgent",
+      "display_name": "🤖 AggressiveAgent",
+      "type": "ai",
+      "developer": "Rule-based AI",
+      "model_info": "aggressive strategy",
+      "description": "激进型AI，主动攻击最近敌人",
+      "created_at": "2026-03-08",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "survival_player",
+      "name": "SurvivalAgent",
+      "display_name": "🤖 SurvivalAgent",
+      "type": "ai",
+      "developer": "Rule-based AI",
+      "model_info": "survival strategy",
+      "description": "生存型AI，优先保持存活",
+      "created_at": "2026-03-08",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "tactical_player",
+      "name": "TacticalAgent",
+      "display_name": "🤖 TacticalAgent",
+      "type": "ai",
+      "developer": "Rule-based AI",
+      "model_info": "tactical strategy",
+      "description": "战术型AI，善于利用地形和武器",
+      "created_at": "2026-03-08",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "weapon_hunter",
+      "name": "WeaponHunter",
+      "display_name": "🤖 WeaponHunter",
+      "type": "ai",
+      "developer": "Rule-based AI",
+      "model_info": "weapon-focused strategy",
+      "description": "武器猎人AI，优先获取高级武器",
+      "created_at": "2026-03-08",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "example_player",
+      "name": "ExampleAgent",
+      "display_name": "🤖 ExampleAgent",
+      "type": "ai",
+      "developer": "Example",
+      "model_info": "example strategy",
+      "description": "示例参赛者",
+      "created_at": "2026-03-08",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "test_player",
+      "name": "TestAgent",
+      "display_name": "🤖 TestAgent",
+      "type": "ai",
+      "developer": "Testing",
+      "model_info": "test strategy",
+      "description": "测试参赛者",
+      "created_at": "2026-03-08",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    },
+    {
+      "id": "lxz_player",
+      "name": "LXZAgent",
+      "display_name": "🤖 LXZAgent",
+      "type": "ai",
+      "developer": "lxz",
+      "model_info": "custom strategy",
+      "description": "lxz的参赛者",
+      "created_at": "2026-03-10",
+      "stats": {
+        "total_matches": 0,
+        "total_wins": 0,
+        "total_kills": 0,
+        "total_deaths": 0,
+        "total_points": 0
+      }
+    }
+  ],
+  "type_labels": {
+    "ai": "🤖 AI选手",
+    "human": "👤 人类选手"
+  }
+}

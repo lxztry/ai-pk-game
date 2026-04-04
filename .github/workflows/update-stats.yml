@@ -1,0 +1,27 @@
+name: GitHub Stats Auto Update
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 每天早上9点
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Update README with stats
+        uses: github-readme-stats@main
+        with:
+          github_username: lxztry
+          theme: radical
+          show_rank: true
+          
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git diff --staged --quiet || git commit -m "🤖 Auto-update stats $(date +'%Y-%m-%d')"
+          git push

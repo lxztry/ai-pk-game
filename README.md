@@ -1,5 +1,17 @@
 # AI竞技平台 🏟️
 
+[![Stars](https://img.shields.io/github/stars/lxztry/ai-pk-game?style=flat-square&logo=github)](https://github.com/lxztry/ai-pk-game)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=Python&logoColor=white)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)]()
+
+<!-- Topics -->
+![Game](https://img.shields.io/badge/-Game-4285F4?style=flat-square)
+![AI](https://img.shields.io/badge/-AI-7C3AED?style=flat-square)
+![Tournament](https://img.shields.io/badge/-Tournament-F59E0B?style=flat-square)
+![GPT](https://img.shields.io/badge/-GPT-10B981?style=flat-square)
+![Multiplayer](https://img.shields.io/badge/-Multiplayer-E11D48?style=flat-square)
+![OpenSource](https://img.shields.io/badge/-OpenSource-6366F1?style=flat-square)
+
 一个游戏化的AI竞技平台，通过统一框架让参与者通过Prompt工程或代码编写来优化AI Agent，进行自动对战。
 
 ## ✨ 主要特性
