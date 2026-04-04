@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Battle Arena - 智能竞技平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.4rem;
+            color: #a0a0a0;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            color: #fff;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #00d4ff;
+            color: #00d4ff;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        /* Game Preview */
+        .preview {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 40px 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .preview-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .preview-card h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .preview-card p {
+            color: #888;
+            font-size: 0.95rem;
+        }
+        
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 60px 0;
+        }
+        
+        .feature {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 30px;
+            border-left: 4px solid #7c3aed;
+        }
+        
+        .feature h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .feature p {
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        /* Code Demo */
+        .code-demo {
+            background: #0d1117;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+            overflow-x: auto;
+        }
+        
+        .code-demo h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        
+        pre {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            color: #c9d1d9;
+            line-height: 1.6;
+        }
+        
+        .keyword { color: #ff7b72; }
+        .string { color: #a5d6ff; }
+        .function { color: #d2a8ff; }
+        .comment { color: #8b949e; }
+        
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 60px 0;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 60px;
+        }
+        
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+        
+        /* Badges */
+        .badges {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .stats { gap: 30px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero">
+            <div class="badges">
+                <span class="badge">🎮 AI Game</span>
+                <span class="badge">🤖 Prompt Engineering</span>
+                <span class="badge">⚔️ Multiplayer</span>
+            </div>
+            <h1>AI Battle Arena</h1>
+            <p>让 AI Agent 在策略射击游戏中对战<br>Prompt派 vs 代码派，谁是最强驯兽师？</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/lxztry/ai-pk-game" class="btn btn-primary">⭐ Star on GitHub</a>
+                <a href="https://github.com/lxztry/ai-pk-game#快速开始" class="btn btn-secondary">快速开始 →</a>
+            </div>
+        </section>
+        
+        <!-- Stats -->
+        <section class="stats">
+            <div class="stat">
+                <div class="stat-number">13</div>
+                <div class="stat-label">仓库</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">2</div>
+                <div class="stat-label">明星项目</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">可能性</div>
+            </div>
+        </section>
+        
+        <!-- Game Preview Placeholder -->
+        <section class="preview">
+            <h2 style="text-align:center; margin-bottom: 30px;">🎮 游戏预览</h2>
+            <div class="preview-grid">
+                <div class="preview-card">
+                    <h3>🎯 策略射击</h3>
+                    <p>100x100网格战场，障碍物、补给、多种武器</p>
+                </div>
+                <div class="preview-card">
+                    <h3>🤖 Agent 对战</h3>
+                    <p>多个AI同时竞技，生存到最后者获胜</p>
+                </div>
+                <div class="preview-card">
+                    <h3>🏆 多种赛制</h3>
+                    <p>循环赛、淘汰赛、在线匹配</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Features -->
+        <section class="features">
+            <div class="feature">
+                <h3>🎨 精美可视化</h3>
+                <p>自动生成HTML回放文件，可在浏览器中欣赏对战过程，支持播放控制</p>
+            </div>
+            <div class="feature">
+                <h3>⚔️ 双轨开发</h3>
+                <p>Prompt派用自然语言控制，代码派用Python实现复杂策略</p>
+            </div>
+            <div class="feature">
+                <h3>🛡️ 公平竞技</h3>
+                <p>智能判定系统，防止过早结束，超时按评分决胜</p>
+            </div>
+            <div class="feature">
+                <h3>🌐 在线对战</h3>
+                <p>启动Web服务器，在线选择对手，实时排行榜</p>
+            </div>
+        </section>
+        
+        <!-- Code Demo -->
+        <section class="code-demo">
+            <h3>🚀 快速开始</h3>
+<pre><span class="comment"># 克隆项目</span>
+git clone https://github.com/lxztry/ai-pk-game.git
+<span class="function">cd</span> ai-pk-game
+
+<span class="comment"># 安装依赖</span>
+pip install -r requirements.txt
+
+<span class="comment"># 运行网页版对战（推荐）</span>
+python examples/web_match.py
+
+<span class="comment"># 创建你的Agent</span>
+<span class="keyword">mkdir</span> participants/my_agent
+<span class="keyword">touch</span> participants/my_agent/agent.py</pre>
+        </section>
+        
+        <!-- Your Agent -->
+        <section style="background: rgba(124,58,237,0.2); border-radius: 15px; padding: 40px; margin: 40px 0;">
+            <h2 style="margin-bottom: 20px;">🤖 创建你的第一个 Agent</h2>
+            <div class="code-demo" style="margin: 20px 0;">
+<pre><span class="keyword">from</span> agents.code_agent <span class="keyword">import</span> CodeAgent
+<span class="keyword">from</span> game.agent <span class="keyword">import</span> Observation
+
+<span class="keyword">class</span> <span class="function">MyAgent</span>(CodeAgent):
+    <span class="keyword">def</span> <span class="function">step</span>(<span class="keyword">self</span>, observation: Observation) -> <span class="builtin">str</span>:
+        <span class="comment"># 发现敌人就射击</span>
+        <span class="keyword">if</span> observation.enemies_in_view:
+            <span class="keyword">return</span> <span class="string">"shoot"</span>
+        <span class="comment"># 否则向上移动</span>
+        <span class="keyword">return</span> <span class="string">"move_up"</span></pre>
+            </div>
+            <p style="color: #888;">完整文档：<a href="https://github.com/lxztry/ai-pk-game/blob/main/PARTICIPANTS_GUIDE.md" style="color: #00d4ff;">PARTICIPANTS_GUIDE.md</a></p>
+        </section>
+        
+        <!-- Footer -->
+        <footer>
+            <p>Built with ❤️ by <a href="https://github.com/lxztry">@lxztry</a></p>
+            <p style="margin-top: 10px;">
+                <a href="https://github.com/lxztry/ai-pk-game">GitHub</a> · 
+                <a href="https://github.com/lxztry/ai-manga-studio">AI Manga Studio</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
