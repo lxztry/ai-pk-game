@@ -22,12 +22,16 @@ class Bullet:
         self.kind = kind  # normal | shotgun | sniper | rocket
         self.splash_radius = splash_radius
         self.active = True
-    
+        self.prev_x = x  # 上一帧位置（用于线段-墙穿越扫描）
+        self.prev_y = y
+
     def update(self, map_width: int, map_height: int):
         """更新子弹位置"""
+        self.prev_x = self.x
+        self.prev_y = self.y
         self.x += self.dx * self.speed
         self.y += self.dy * self.speed
-        
+
         # 检查边界
         if self.x < 0 or self.x >= map_width or self.y < 0 or self.y >= map_height:
             self.active = False
@@ -217,10 +221,12 @@ class GameState:
 
 class GameEngine:
     """游戏引擎"""
-    
+
     def __init__(self, agents: List[Agent], map_width: int = 100, map_height: int = 100):
         self.state = GameState(agents, map_width, map_height)
         self.view_distance = 30.0  # 视野距离
+        # 子弹与 Agent 碰撞半径（越大越容易命中，默认 3 让 demo 更激烈）
+        self.bullet_collision_radius = 5.0
         # 供应生成参数
         self.supply_spawn_chance = 0.03  # 每回合生成概率（提高以确保有足够补给）
         self.max_supplies = 12  # 增加最大补给数量
@@ -272,7 +278,8 @@ class GameEngine:
                 
                 # 验证动作有效性
                 valid_actions = ["move_up", "move_down", "move_left", "move_right",
-                               "turn_left", "turn_right", "shoot", "idle"]
+                               "turn_left", "turn_right", "shoot", "idle",
+                               "dodge_left", "dodge_right"]
                 if action is None or action not in valid_actions:
                     print(f"警告: Agent {agent.name} 返回了无效动作 '{action}'，使用 'idle'")
                     action = "idle"
@@ -428,6 +435,7 @@ class GameEngine:
     def _execute_action(self, agent: Agent, action: str):
         """执行Agent的动作"""
         move_speed = 2.0
+        dodge_speed = 4.0  # 闪避动作移动距离（比正常移动更快）
         turn_speed = math.pi / 6  # 30度
 
         def try_move(nx: float, ny: float):
@@ -444,7 +452,10 @@ class GameEngine:
                 agent.position = (agent.position[0], ny)
                 return True
             return False
-        
+
+        # 标记闪避状态（用于视觉）
+        agent.is_dodging = action in ("dodge_left", "dodge_right")
+
         if action == "move_up":
             try_move(agent.position[0], agent.position[1] - move_speed)
         elif action == "move_down":
@@ -453,6 +464,21 @@ class GameEngine:
             try_move(agent.position[0] - move_speed, agent.position[1])
         elif action == "move_right":
             try_move(agent.position[0] + move_speed, agent.position[1])
+        elif action == "dodge_left":
+            # 向朝向左侧垂直闪避
+            perp_dx = -agent.direction[1]
+            perp_dy = agent.direction[0]
+            try_move(
+                agent.position[0] + perp_dx * dodge_speed,
+                agent.position[1] + perp_dy * dodge_speed,
+            )
+        elif action == "dodge_right":
+            perp_dx = agent.direction[1]
+            perp_dy = -agent.direction[0]
+            try_move(
+                agent.position[0] + perp_dx * dodge_speed,
+                agent.position[1] + perp_dy * dodge_speed,
+            )
         elif action == "turn_left":
             angle = math.atan2(agent.direction[1], agent.direction[0])
             angle -= turn_speed
@@ -529,29 +555,55 @@ class GameEngine:
             self.state.bullets.append(Bullet(wx, wy, dx, dy, agent.name, damage=damage, speed=speed, kind=kind, splash_radius=splash))
 
         if weapon == 'normal':
-            add_bullet(dx, dy, damage=10, speed=5.0, kind='normal')
-            agent.shoot_cooldown = 20
+            add_bullet(dx, dy, damage=10, speed=3.0, kind='normal')  # 减慢速度（5→3）
+            agent.shoot_cooldown = 5  # 略增冷却（3→5），让节奏更清楚
         elif weapon == 'shotgun' and agent.ammo['shotgun'] > 0:
             # 三发散射
             base_angle = math.atan2(dy, dx)
             spreads = [-0.2, 0.0, 0.2]
             for s in spreads:
                 ang = base_angle + s
-                add_bullet(math.cos(ang), math.sin(ang), damage=8, speed=4.5, kind='shotgun')
+                add_bullet(math.cos(ang), math.sin(ang), damage=8, speed=2.8, kind='shotgun')
             agent.ammo['shotgun'] -= 1
-            agent.shoot_cooldown = 25
+            agent.shoot_cooldown = 6
         elif weapon == 'sniper' and agent.ammo['sniper'] > 0:
-            add_bullet(dx, dy, damage=25, speed=8.0, kind='sniper')
+            add_bullet(dx, dy, damage=25, speed=6.0, kind='sniper')  # 8→6
             agent.ammo['sniper'] -= 1
-            agent.shoot_cooldown = 35
+            agent.shoot_cooldown = 8
         elif weapon == 'rocket' and agent.ammo['rocket'] > 0:
-            add_bullet(dx, dy, damage=20, speed=3.5, kind='rocket', splash=8.0)
+            add_bullet(dx, dy, damage=20, speed=2.5, kind='rocket', splash=8.0)
             agent.ammo['rocket'] -= 1
-            agent.shoot_cooldown = 40
+            agent.shoot_cooldown = 10
         else:
             # 无弹药时按普通射击
-            add_bullet(dx, dy, damage=10, speed=5.0, kind='normal')
-            agent.shoot_cooldown = 20
+            add_bullet(dx, dy, damage=10, speed=3.0, kind='normal')
+            agent.shoot_cooldown = 5
+
+    @staticmethod
+    def _segment_rect_intersect(x1, y1, x2, y2, rx1, ry1, rx2, ry2):
+        """Liang-Barsky 线段-矩形裁剪。返回最近交点 (x, y)，或 None。"""
+        dx = x2 - x1
+        dy_seg = y2 - y1
+        p = [-dx, dx, -dy_seg, dy_seg]
+        q = [x1 - rx1, rx2 - x1, y1 - ry1, ry2 - y1]
+        t_in, t_out = 0.0, 1.0
+        for i in range(4):
+            if p[i] == 0:
+                if q[i] < 0:
+                    return None
+                continue
+            t = q[i] / p[i]
+            if p[i] < 0:
+                if t > t_out:
+                    return None
+                if t > t_in:
+                    t_in = t
+            else:
+                if t < t_in:
+                    return None
+                if t < t_out:
+                    t_out = t
+        return (x1 + t_in * dx, y1 + t_in * dy_seg)
 
     def _check_collisions(self):
         """检测碰撞"""
@@ -559,14 +611,34 @@ class GameEngine:
         for bullet in self.state.bullets[:]:
             if not bullet.active:
                 continue
-            # 子弹碰撞矩形障碍则失效（火箭产生溅射）
+            # 子弹碰撞矩形障碍（线段穿越扫描：防止单帧跨过薄墙）
             hit_obstacle = False
+            hit_x, hit_y = bullet.x, bullet.y
+            # 起点（上一帧位置）和终点（本帧位置）
+            sx, sy = bullet.prev_x, bullet.prev_y
+            ex, ey = bullet.x, bullet.y
             for obs in self.state.obstacles:
                 rx, ry, rw, rh = obs['rect']
-                if (rx <= bullet.x <= rx + rw) and (ry <= bullet.y <= ry + rh):
+                # 1. 终点在墙内
+                if (rx <= ex <= rx + rw) and (ry <= ey <= ry + rh):
+                    hit_x, hit_y = ex, ey
+                    hit_obstacle = True
+                    break
+                # 2. 起点在墙内
+                if (rx <= sx <= rx + rw) and (ry <= sy <= ry + rh):
+                    hit_x, hit_y = sx, sy
+                    hit_obstacle = True
+                    break
+                # 3. 线段穿越矩形边界（矩形 4 条边和线段的相交检测）
+                clip = self._segment_rect_intersect(sx, sy, ex, ey, rx, ry, rx + rw, ry + rh)
+                if clip is not None:
+                    hit_x, hit_y = clip
                     hit_obstacle = True
                     break
             if hit_obstacle:
+                # 把子弹固定到撞墙点（更美观）
+                bullet.x = hit_x
+                bullet.y = hit_y
                 if bullet.kind == 'rocket' and bullet.splash_radius > 0:
                     self._apply_splash_damage(bullet)
                 bullet.active = False
@@ -585,7 +657,7 @@ class GameEngine:
                     (bullet.x - agent.position[0]) ** 2 +
                     (bullet.y - agent.position[1]) ** 2
                 )
-                if dist < 3.0:  # 碰撞半径
+                if dist < self.bullet_collision_radius:  # 碰撞半径
                     if bullet.kind == 'rocket' and bullet.splash_radius > 0:
                         # 火箭弹溅射
                         self._apply_splash_damage(bullet)

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="S74MmKPQHLPeE0kNHQ3Z9J">
+<head data-page-node-id="9vhKUj9eXwjz7mWIcBB3kq">
+<meta charset="UTF-8" data-page-node-id="mBDKulHYSjTVOAzlPmxGEp">
+<title>Prompt 对决 - 离线版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; min-height: 100vh; padding: 20px;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+h1 { text-align: center; margin-bottom: 8px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+.subtitle { text-align: center; margin-bottom: 24px; opacity: 0.85; font-size: 14px; }
+.grid { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 12px; margin-bottom: 16px; }
+.vs { display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; }
+.panel {
+  background: rgba(255,255,255,0.12); backdrop-filter: blur(10px);
+  border-radius: 12px; padding: 16px;
+}
+.panel.red { border-left: 4px solid #ef4444; }
+.panel.blue { border-left: 4px solid #3b82f6; }
+.panel h2 { margin-bottom: 10px; font-size: 16px; }
+label { display: block; margin-bottom: 4px; font-size: 12px; opacity: 0.9; }
+input, select, textarea {
+  width: 100%; padding: 7px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.25); color: white; font-size: 13px;
+  font-family: inherit;
+}
+textarea { min-height: 110px; resize: vertical; font-family: 'Consolas', monospace; }
+.row { margin-bottom: 10px; }
+button {
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+  color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+button:hover { background: rgba(255,255,255,0.3); }
+button.primary {
+  background: linear-gradient(135deg, #fbbf24, #f97316);
+  border: none; padding: 14px 40px; border-radius: 8px;
+  font-size: 18px; font-weight: bold;
+}
+button.primary:hover { transform: scale(1.05); }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.preset-row { display: flex; gap: 6px; margin-top: 4px; }
+.actions { text-align: center; margin: 16px 0; }
+.status {
+  background: rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 16px; min-height: 60px; font-size: 14px;
+}
+.status.running { background: rgba(59,130,246,0.3); }
+.status.completed { background: rgba(34,197,94,0.3); }
+.status.error { background: rgba(239,68,68,0.3); }
+.log {
+  background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;
+  font-family: 'Consolas', monospace; font-size: 12px;
+  max-height: 300px; overflow-y: auto; white-space: pre;
+  margin-top: 10px;
+}
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  background: rgba(255,255,255,0.2); font-size: 11px; margin-left: 6px;
+}
+.hpbar { background: rgba(0,0,0,0.4); border-radius: 4px; height: 14px; overflow: hidden; }
+.hpfill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); transition: width 0.3s; }
+.note { font-size: 12px; opacity: 0.7; margin-top: 6px; }
+</style>
+</head>
+<body data-page-node-id="0Fc7Jav8TsrK6bw6iLFibm">
+<div class="container" data-page-node-id="XTvKKUBhs4BNx4jZtu875T">
+  <h1 data-page-node-id="AXsxuETL0dBGTr0V0xMfGA">⚔️ Prompt 对决 <span style="font-size:14px;opacity:0.7;" data-page-node-id="pS8m0TCAkYY0QZs4iorIdV">(离线 Mock 版)</span></h1>
+  <p class="subtitle" data-page-node-id="FRYq1VVj9RERXmqoHH8xE1">输入两个 prompt，让 mock LLM 决定谁更会打。100% 在浏览器跑，<b data-page-node-id="mfGqNthwo1c678CcFPzWCG">无需后端</b>。</p>
+
+  <div class="grid" data-page-node-id="Yy2q9AQrxDlk9DscUBK102">
+    <div class="panel red" data-page-node-id="pFGYCjeBJVvBS8m9dUFDda">
+      <h2 data-page-node-id="FpmS8AJYEY68tk0ebgCUcd">🟥 玩家 A <span class="badge" id="bA" data-page-node-id="LhcMQCIz2oY6PaYT6epu1F">aggressive</span></h2>
+      <div class="row" data-page-node-id="2AuHUltVR9sqTVRZQd4XS0">
+        <label data-page-node-id="sDJIG2wu3xaOWA1IiFQ87o">名字</label>
+        <input id="nA" value="激进派" data-page-node-id="zreEVKephK3IilevQC7tPu">
+      </div>
+      <div class="row" data-page-node-id="ekOYq9x1DSiaDtajTS1QUP">
+        <label data-page-node-id="PgJsCZO65ojwghrQHlPkFH">性格</label>
+        <select id="pA" data-page-node-id="IoFi5GsfEaZxaeP4fphQip">
+          <option value="aggressive" selected data-page-node-id="aBHVjJ1fryGdMXIBuaTDXL">aggressive (激进)</option>
+          <option value="defensive" data-page-node-id="vD9Y1cMTQ5uneMEqVDvEu9">defensive (防守)</option>
+          <option value="sniper" data-page-node-id="Fsy4MydlKPcnDJBFndaHr9">sniper (狙击)</option>
+          <option value="balanced" data-page-node-id="HVXOjNcLsRCfaLzTuO2PBA">balanced (均衡)</option>
+        </select>
+      </div>
+      <div class="row" data-page-node-id="BEHRIo4ElYLEVvcEbcHMXP">
+        <label data-page-node-id="psObHH2v0uHCN7V19ax92D">Prompt</label>
+        <textarea id="tA">你是激进的战斗特工。规则：
+1. 视野里有敌人立即射击
+2. 没敌人时朝敌人方向冲锋
+3. 血量 < 20 才考虑逃跑</textarea>
+        <div class="preset-row" data-page-node-id="Xr1FWpu3gLScfEXIZTTKIN">
+          <span style="font-size:11px;opacity:0.7;" data-page-node-id="bqVudmPasSbGFiugk9tWHT">预设:</span>
+          <button onclick="setPreset('A','aggressive')" data-page-node-id="axKIM5i8CXU2JnX6OYCgdI">激进</button>
+          <button onclick="setPreset('A','defensive')" data-page-node-id="7ZWk63E1kVCUrEXJMB1I1g">防守</button>
+          <button onclick="setPreset('A','sniper')" data-page-node-id="54BcFZVwAtreLFQLX7Isae">狙击</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="vs" data-page-node-id="3BqUTIcVkYiOdSzcPZBXNU">⚔️</div>
+
+    <div class="panel blue" data-page-node-id="7GN4x9x05pcAE7kCZdP176">
+      <h2 data-page-node-id="UvELrQ0iaCZuGqTxu0FZIm">🟦 玩家 B <span class="badge" id="bB" data-page-node-id="DoNem7wa7uAhn8VVNrRpDT">defensive</span></h2>
+      <div class="row" data-page-node-id="lKKZR6NoNwHBX4GYwYSRBb">
+        <label data-page-node-id="K1QwLU9IeY4KrmBISMjnzM">名字</label>
+        <input id="nB" value="防守派" data-page-node-id="xKIsh2myT7TMLLbB0lCvCZ">
+      </div>
+      <div class="row" data-page-node-id="3uwJF4DpgmxsuiGpULofiC">
+        <label data-page-node-id="xvp7sFAuhG7SCcGTfBI34i">性格</label>
+        <select id="pB" data-page-node-id="9NrusirXLCQyKcN0uP9Dch">
+          <option value="aggressive" data-page-node-id="xJBeYgVaTeFHoYIbEGcCZ6">aggressive (激进)</option>
+          <option value="defensive" selected data-page-node-id="GrHhDcGGoo45NbHwJyDcpA">defensive (防守)</option>
+          <option value="sniper" data-page-node-id="fTgFex8mpYaEqp3BMya2tA">sniper (狙击)</option>
+          <option value="balanced" data-page-node-id="ldPli7Nsq7qGurmiqcLKWg">balanced (均衡)</option>
+        </select>
+      </div>
+      <div class="row" data-page-node-id="uUM97jsHtO8Rx5TT6Lx0We">
+        <label data-page-node-id="P1PUFZyNPNAUMKlQFAeHiV">Prompt</label>
+        <textarea id="tB">你是谨慎的战斗特工。规则：
+1. 距离敌人 > 15 才射击，避免近战
+2. 持续移动，不 idle
+3. 血量 < 50 立刻远离敌人</textarea>
+        <div class="preset-row" data-page-node-id="Vq2IOV4zm2uHNy8TMUaKSZ">
+          <span style="font-size:11px;opacity:0.7;" data-page-node-id="0dNW1I29AEPJubl0axJHmF">预设:</span>
+          <button onclick="setPreset('B','aggressive')" data-page-node-id="bW75NjCUBMiAwajpZzpLA5">激进</button>
+          <button onclick="setPreset('B','defensive')" data-page-node-id="GBR8G7LooVBnuyRmSBtmUA">防守</button>
+          <button onclick="setPreset('B','sniper')" data-page-node-id="n5Pzpf9aPxBZNQoffmdf7r">狙击</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions" data-page-node-id="9Z5Ktlgb4988Y6Ga2CQlQk">
+    <button class="primary" id="startBtn" onclick="runDuel()" data-page-node-id="KpZS3e1PwkzaV6uAs4x89K">⚔️ 开打！</button>
+    <button onclick="resetAll()" style="margin-left:12px;" data-page-node-id="XjRBvj46SdcXTF83aIQqvO">🔄 重置</button>
+  </div>
+
+  <div class="status" id="status" data-page-node-id="wwyxGsyXOhM99sFebwB1kP">就绪。点 "开打" 跑一场 Prompt 对决（30 回合，地图 25x25，霰弹枪）。</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;" data-page-node-id="nzVeiDxBSOew9sDSYHvhuC">
+    <div data-page-node-id="a2XDlCvOPEYofeMo3fUAOF">
+      <h3 id="hA2" data-page-node-id="X2ofUaVlKGPe6MUK2wwSin">玩家 A 状态</h3>
+      <div class="hpbar" data-page-node-id="VCIPX3eGqgmp2NaROlqeFw"><div class="hpfill" id="hpA" style="width:100%" data-page-node-id="AP7sij2aC0KhlmVzQTSbfq"></div></div>
+      <div id="statA" style="margin-top:6px;font-size:13px;" data-page-node-id="HlBHZ3KxiS68DDPCYiph8x">血量 100/100</div>
+    </div>
+    <div data-page-node-id="zh1DRqCOckuTWcFjCQ9NGC">
+      <h3 id="hB2" data-page-node-id="dGIrEEe00dThAJIuUxcDy8">玩家 B 状态</h3>
+      <div class="hpbar" data-page-node-id="zgem8PzNqie3fyvAvLBBlf"><div class="hpfill" id="hpB" style="width:100%" data-page-node-id="nVltAJR5TyUBdmCZtwgyOG"></div></div>
+      <div id="statB" style="margin-top:6px;font-size:13px;" data-page-node-id="E4auw6eFEJqVk9sAzjQsDN">血量 100/100</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:16px;" data-page-node-id="Ods1J5AtJeGmgyJTedD6nO">📺 回合解说</h3>
+  <div class="log" id="log" data-page-node-id="Gp081noQ4UtSX89GJpoPgk">（点 "开打" 后这里显示每回合动作）</div>
+
+  <p class="note" data-page-node-id="4F40G75uDImwPWcrGVEhuv">
+    💡 这是离线版。完整功能版（含真 LLM）需要跑后端：<code data-page-node-id="CkG2F4qRKPWR2DE445yuzD">python run_online_server.py</code> → 访问 <code data-page-node-id="YbSu1WeDiDjClVxXFyCkn8">http://localhost:5050/duel</code>。
+  </p>
+</div>
+
+<script>
+// ===================== 游戏引擎 (简化版) =====================
+const ACTIONS = ['move_up','move_down','move_left','move_right',
+                 'turn_left','turn_right','shoot','idle'];
+const ACTION_EMOJI = {move_up:'↑',move_down:'↓',move_left:'←',move_right:'→',
+                       turn_left:'↺',turn_right:'↻',shoot:'💥',idle:'💤'};
+
+class Agent {
+  constructor(name, persona) {
+    this.name = name; this.persona = persona;
+    this.health = 100; this.position = [12, 12];
+    this.direction = [1, 0]; this.weapon = 'shotgun';
+    this.ammo = {shotgun: 30, sniper: 0, rocket: 0};
+    this.shoot_cooldown = 0; this.kills = 0; this.deaths = 0;
+    this.hits = []; this.shotsFired = 0; this.shotsHit = 0;
+  }
+  distanceTo(other) {
+    return Math.sqrt((this.position[0]-other.position[0])**2 + (this.position[1]-other.position[1])**2);
+  }
+}
+
+class Bullet {
+  constructor(x, y, dx, dy, owner, damage, splash=0) {
+    this.x = x; this.y = y; this.dx = dx; this.dy = dy;
+    this.owner = owner; this.damage = damage; this.splash = splash;
+    this.active = true; this.shotTurn = currentTurn;
+  }
+  update(W, H) {
+    this.x += this.dx * 5;
+    this.y += this.dy * 5;
+    if (this.x < 0 || this.x >= W || this.y < 0 || this.y >= H) this.active = false;
+  }
+}
+
+// ===================== Mock LLM =====================
+function mockLLM_decide(agent, enemy, persona) {
+  const my_pos = agent.position;
+  const my_dir = agent.direction;
+  const cooldown = agent.shoot_cooldown;
+  if (!enemy) {
+    // 没敌人，随机探索
+    return ACTIONS[Math.floor(Math.random()*4)];
+  }
+  if (agent.health < 30) {
+    // 血低逃
+    const dx = my_pos[0] - enemy.position[0];
+    const dy = my_pos[1] - enemy.position[1];
+    return Math.abs(dx) > Math.abs(dy) ? (dx>0?'move_right':'move_left') : (dy>0?'move_down':'move_up');
+  }
+  const dx = enemy.position[0] - my_pos[0];
+  const dy = enemy.position[1] - my_pos[1];
+  const target_angle = Math.atan2(dy, dx);
+  const current_angle = Math.atan2(my_dir[1], my_dir[0]);
+  let diff = target_angle - current_angle;
+  while (diff > Math.PI) diff -= 2*Math.PI;
+  while (diff < -Math.PI) diff += 2*Math.PI;
+  const aimed = Math.abs(diff) < 0.5;
+
+  if (persona === 'aggressive') {
+    if (cooldown === 0 && aimed) return 'shoot';
+    return diff < 0 ? 'turn_left' : 'turn_right';
+  } else if (persona === 'defensive') {
+    if (agent.health < 60) {
+      return Math.abs(dx) > Math.abs(dy) ? (dx<0?'move_right':'move_left') : (dy<0?'move_down':'move_up');
+    }
+    if (cooldown === 0 && aimed && Math.random() < 0.4) return 'shoot';
+    return Math.abs(dx) > Math.abs(dy) ? (dx<0?'move_right':'move_left') : (dy<0?'move_down':'move_up');
+  } else if (persona === 'sniper') {
+    if (cooldown === 0 && aimed) return 'shoot';
+    return Math.random() < 0.5 ? 'turn_left' : 'turn_right';
+  } else { // balanced
+    if (cooldown === 0 && aimed) return 'shoot';
+    return diff < 0 ? 'turn_left' : 'turn_right';
+  }
+}
+
+// ===================== 游戏循环 =====================
+let agents = [];
+let bullets = [];
+let currentTurn = 0;
+let log = '';
+let running = false;
+const W = 25, H = 25;
+
+function initGame(aName, aPersona, bName, bPersona) {
+  agents = [
+    new Agent(aName, aPersona),
+    new Agent(bName, bPersona),
+  ];
+  // 开局面对面 15 单位距离
+  agents[0].position = [8, 12];
+  agents[1].position = [17, 12];
+  // 互相面向
+  agents[0].direction = [1, 0];
+  agents[1].direction = [-1, 0];
+  bullets = [];
+  currentTurn = 0;
+  log = '';
+}
+
+function applyAction(agent, action) {
+  if (agent.shoot_cooldown > 0) agent.shoot_cooldown--;
+  const spd = 2;
+  if (action === 'move_up') tryMove(agent, agent.position[0], agent.position[1] - spd);
+  else if (action === 'move_down') tryMove(agent, agent.position[0], agent.position[1] + spd);
+  else if (action === 'move_left') tryMove(agent, agent.position[0] - spd, agent.position[1]);
+  else if (action === 'move_right') tryMove(agent, agent.position[0] + spd, agent.position[1]);
+  else if (action === 'turn_left') {
+    const a = Math.atan2(agent.direction[1], agent.direction[0]) - Math.PI/6;
+    agent.direction = [Math.cos(a), Math.sin(a)];
+  } else if (action === 'turn_right') {
+    const a = Math.atan2(agent.direction[1], agent.direction[0]) + Math.PI/6;
+    agent.direction = [Math.cos(a), Math.sin(a)];
+  } else if (action === 'shoot' && agent.shoot_cooldown === 0) {
+    fireWeapon(agent);
+  }
+}
+
+function tryMove(agent, x, y) {
+  x = Math.max(0, Math.min(W-1, x));
+  y = Math.max(0, Math.min(H-1, y));
+  agent.position = [x, y];
+}
+
+function fireWeapon(agent) {
+  const dmg = 8;  // 霰弹枪 8 * 3 = 24 总伤害范围
+  // 散射 3 发
+  for (let i = -1; i <= 1; i++) {
+    const a = Math.atan2(agent.direction[1], agent.direction[0]) + i * 0.2;
+    bullets.push(new Bullet(agent.position[0], agent.position[1],
+      Math.cos(a), Math.sin(a), agent.name, dmg));
+  }
+  agent.shotsFired += 3;
+  agent.shoot_cooldown = 4;
+}
+
+function updateBullets() {
+  for (let i = bullets.length-1; i >= 0; i--) {
+    bullets[i].update(W, H);
+    if (!bullets[i].active) bullets.splice(i, 1);
+  }
+}
+
+function checkCollisions() {
+  for (let i = bullets.length-1; i >= 0; i--) {
+    const b = bullets[i];
+    if (!b.active) continue;
+    for (const target of agents) {
+      if (target.name === b.owner) continue;
+      const dx = b.x - target.position[0];
+      const dy = b.y - target.position[1];
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 5) {  // 碰撞半径 5
+        target.health -= b.damage;
+        b.active = false;
+        if (b.owner) {
+          for (const a of agents) {
+            if (a.name === b.owner) {
+              a.shotsHit++;
+              if (target.health <= 0) a.kills++;
+              break;
+            }
+          }
+        }
+        break;
+      }
+    }
+    if (!b.active) bullets.splice(i, 1);
+  }
+}
+
+function getEnemy(me) { return agents.find(a => a.name !== me.name); }
+
+function step() {
+  currentTurn++;
+  for (const a of agents) {
+    if (a.health <= 0) continue;
+    const enemy = getEnemy(a);
+    const action = mockLLM_decide(a, enemy, a.persona);
+    applyAction(a, action);
+  }
+  updateBullets();
+  checkCollisions();
+  return getAliveCount() <= 1;
+}
+
+function getAliveCount() {
+  return agents.filter(a => a.health > 0).length;
+}
+
+function decideWinner() {
+  const alive = agents.filter(a => a.health > 0);
+  if (alive.length === 1) return alive[0].name;
+  if (alive.length === 0) return null;
+  // 评分
+  alive.sort((a, b) => (b.kills * 10000 + b.health) - (a.kills * 10000 + a.health));
+  if (alive.length >= 2 && alive[0].kills*10000+alive[0].health === alive[1].kills*10000+alive[1].health) return null;
+  return alive[0].name;
+}
+
+// ===================== UI =====================
+const PRESETS = {
+  aggressive: '你是激进的战斗特工。规则：\n1. 视野里有敌人立即射击\n2. 没敌人时朝敌人方向冲锋\n3. 血量 < 20 才考虑逃跑',
+  defensive: '你是谨慎的战斗特工。规则：\n1. 距离敌人 > 15 才射击，避免近战\n2. 持续移动，不 idle\n3. 血量 < 50 立刻远离敌人',
+  sniper: '你是狙击手型特工。规则：\n1. 远距离优先，保持距离\n2. 一旦瞄准就射击\n3. 血量 < 40 找掩体',
+};
+
+function setPreset(side, persona) {
+  document.getElementById('t'+side).value = PRESETS[persona];
+  document.getElementById('p'+side).value = persona;
+  updateBadge(side);
+}
+
+function updateBadge(side) {
+  const persona = document.getElementById('p'+side).value;
+  document.getElementById('b'+side).textContent = persona;
+}
+document.getElementById('pA').onchange = () => updateBadge('A');
+document.getElementById('pB').onchange = () => updateBadge('B');
+
+function updateUI() {
+  for (const a of agents) {
+    const side = a === agents[0] ? 'A' : 'B';
+    const hp = Math.max(0, a.health);
+    document.getElementById('hp'+side).style.width = (hp) + '%';
+    document.getElementById('hp'+side).style.background = hp > 50 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : hp > 25 ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 'linear-gradient(90deg, #ef4444, #b91c1c)';
+    document.getElementById('stat'+side).innerHTML =
+      `${a.name} | 血 ${hp}/100 | 击杀 ${a.kills} | 弹药 ${a.ammo.shotgun} | 命中 ${a.shotsHit}/${a.shotsFired}`;
+  }
+}
+
+async function runDuel() {
+  if (running) return;
+  const nA = document.getElementById('nA').value || 'A';
+  const pA = document.getElementById('pA').value;
+  const tA = document.getElementById('tA').value;
+  const nB = document.getElementById('nB').value || 'B';
+  const pB = document.getElementById('pB').value;
+  const tB = document.getElementById('tB').value;
+  if (!tA || !tB) { alert('请填两个 prompt'); return; }
+
+  running = true;
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  const status = document.getElementById('status');
+  status.className = 'status running';
+  status.innerHTML = '⏳ 跑对决...';
+
+  initGame(nA, pA, nB, pB);
+  document.getElementById('hA2').textContent = nA;
+  document.getElementById('hB2').textContent = nB;
+
+  let logText = '';
+  const maxTurns = 60;
+  let winner = null;
+  for (let t = 0; t < maxTurns; t++) {
+    const before = JSON.stringify(agents.map(a => ({n: a.name, h: a.health, p: a.position.slice(), d: a.direction.slice(), c: a.shoot_cooldown})));
+    const finished = step();
+    const after = JSON.parse(before);
+    // 显示回合动作
+    let line = `回合${t.toString().padStart(2,'0')} │ `;
+    for (let i = 0; i < agents.length; i++) {
+      const a = agents[i];
+      const bef = after[i];
+      let act = 'idle';
+      if (a.position[0] !== bef.p[0] || a.position[1] !== bef.p[1]) act = `move_${a.position[0]>bef.p[0]?'right':a.position[0]<bef.p[0]?'left':a.position[1]>bef.p[1]?'down':'up'}`;
+      else if (a.direction[0] !== bef.d[0] || a.direction[1] !== bef.d[1]) {
+        const beforeAngle = Math.atan2(bef.d[1], bef.d[0]);
+        const afterAngle = Math.atan2(a.direction[1], a.direction[0]);
+        const diff = afterAngle - beforeAngle;
+        act = diff > 0 ? 'turn_right' : 'turn_left';
+      }
+      // 看子弹
+      const newBullets = bullets.filter(b => b.shotTurn === t && b.owner === a.name).length;
+      if (newBullets > 0) act = 'shoot';
+      line += `${a.name} ${ACTION_EMOJI[act]||'?'}(血${a.health.toString().padStart(3)}杀${a.kills}) │ `;
+    }
+    logText += line + '\n';
+    document.getElementById('log').textContent = logText;
+    document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+    updateUI();
+
+    if (finished) {
+      winner = decideWinner();
+      break;
+    }
+    await sleep(50); // 让动画能看到
+  }
+  if (!winner) winner = decideWinner();
+
+  status.className = 'status completed';
+  status.innerHTML = `🏆 <b>${winner || '平局'}</b> 获胜！回合 ${currentTurn} | <small>刷新页面再开打</small>`;
+
+  btn.disabled = false;
+  running = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function resetAll() {
+  initGame('激进派','aggressive','防守派','defensive');
+  document.getElementById('status').className = 'status';
+  document.getElementById('status').innerHTML = '就绪。';
+  document.getElementById('log').textContent = '（点 "开打" 后这里显示每回合动作）';
+  updateUI();
+}
+
+// 初始化
+resetAll();
+</script>
+</body>
+</html>

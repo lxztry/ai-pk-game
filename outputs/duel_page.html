@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="JCeICa48bSmM6JoHb1TDwJ">
+<head data-page-node-id="zztln20eD5eVwuz83UAPfc">
+    <meta charset="UTF-8" data-page-node-id="OCSPQusLYez5eH6xmAPlhj">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="lE5MxMtBGqJQGpcZ4toRkz">
+    <title>AI竞技平台 - Prompt 对决</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .subtitle { text-align: center; margin-bottom: 30px; opacity: 0.85; }
+        .grid { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 15px; margin-bottom: 20px; }
+        .vs { display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; }
+        .player-panel {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 18px;
+        }
+        .player-panel.red { border-left: 4px solid #ef4444; }
+        .player-panel.blue { border-left: 4px solid #3b82f6; }
+        .player-panel h2 { margin-bottom: 12px; font-size: 18px; }
+        label { display: block; margin-bottom: 4px; font-size: 13px; opacity: 0.9; }
+        input, select, textarea {
+            width: 100%; padding: 8px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.2); color: white; font-size: 14px;
+            font-family: inherit;
+        }
+        textarea { min-height: 130px; resize: vertical; font-family: 'Consolas', monospace; }
+        .form-row { margin-bottom: 12px; }
+        .settings {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 18px; margin-bottom: 20px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;
+        }
+        button {
+            background: linear-gradient(135deg, #fbbf24, #f97316);
+            border: none; padding: 14px 40px; border-radius: 8px;
+            color: white; font-size: 18px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 4px 20px rgba(251,191,36,0.4); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .actions { text-align: center; }
+        .status {
+            margin-top: 20px; padding: 15px; border-radius: 8px;
+            background: rgba(255,255,255,0.15); min-height: 50px;
+        }
+        .status.running { background: rgba(59,130,246,0.3); }
+        .status.completed { background: rgba(34,197,94,0.3); }
+        .status.error { background: rgba(239,68,68,0.3); }
+        .replay-frame { margin-top: 20px; }
+        .replay-frame iframe {
+            width: 100%; height: 600px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 12px; background: #1a1a2e;
+        }
+        .preset-btn {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+            padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+            color: white;
+        }
+        .preset-btn:hover { background: rgba(255,255,255,0.25); }
+        .preset-row { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            background: rgba(255,255,255,0.2); font-size: 11px; margin-left: 8px;
+        }
+        .providers-info {
+            font-size: 12px; opacity: 0.7; margin-top: 8px;
+            background: rgba(0,0,0,0.15); padding: 8px; border-radius: 6px;
+        }
+    </style>
+</head>
+<body data-page-node-id="nhtmsa73zBVIUsNHLd2yEj">
+    <div class="container" data-page-node-id="pTzusldWQPHmWV9lYtQwVE">
+        <h1 data-page-node-id="BEuvBEtah1nkrU4iF0xsx9">⚔️ Prompt 对决</h1>
+        <p class="subtitle" data-page-node-id="xbVe7aJrBSJX7Vi5wXXtmO">输入两个自然语言 prompt，让同一个 LLM 决定谁更会打</p>
+
+        <div class="grid" data-page-node-id="DIgYB7AhadCXf7y7UMO4Zs">
+            <div class="player-panel red" data-page-node-id="ZvNHgAEyr0nD4JAjjNW2o6">
+                <h2 data-page-node-id="HsGjULWBoKcAU7zzH1al2j">🟥 玩家 A <span class="badge" id="badge-a" data-page-node-id="DIPO9UEBDwAfpzAoYtHi1X">balanced</span></h2>
+                <div class="form-row" data-page-node-id="F2EtK2BLbaBOfZ28YHBRUx">
+                    <label data-page-node-id="PHMsNsYiBZIgT304mU0OHu">名字</label>
+                    <input type="text" id="name-a" value="激进派" data-page-node-id="HX0Sdz1oYnxhSPLlXf5ryV" />
+                </div>
+                <div class="form-row" data-page-node-id="2K0XexWxgX4Ukdw9Y1ChZy">
+                    <label data-page-node-id="O8pays8MKOGRlKAvdZplfQ">性格</label>
+                    <select id="persona-a" data-page-node-id="YAJEDs6xPaQnlMsOAkprZn">
+                        <option value="aggressive" selected data-page-node-id="WR3Q8rE2ctlI7AU5aX5wZh">aggressive (激进)</option>
+                        <option value="defensive" data-page-node-id="4BIEejvHlN10NuIFTQ381o">defensive (防守)</option>
+                        <option value="sniper" data-page-node-id="SArYL90iorG95wFBnt5n6z">sniper (狙击)</option>
+                        <option value="balanced" data-page-node-id="zDQKWH6NDdvEvPrSgMTsAd">balanced (均衡)</option>
+                    </select>
+                </div>
+                <div class="form-row" data-page-node-id="ZVHj98rXCbNDa4PrQvbfBE">
+                    <label data-page-node-id="wUGGz0PORywnTQAKFD8U0D">Prompt 策略</label>
+                    <textarea id="prompt-a" placeholder="你是激进的战斗特工。看到敌人就射击...">你是激进的战斗特工。规则：
+1. 视野里有敌人立即射击
+2. 没敌人时朝敌人方向冲锋
+3. 血量 < 20 才考虑逃跑</textarea>
+                    <div class="preset-row" data-page-node-id="k2FyolmrlfIgP5IWdROh2N">
+                        <span style="font-size: 12px; opacity: 0.7;" data-page-node-id="9BgG9amPT9ewC4AHgfZoHV">预设:</span>
+                        <button class="preset-btn" onclick="setPreset('a', 'aggressive')" data-page-node-id="1g7PEWF0RIVwCQ0BBvFD6f">激进</button>
+                        <button class="preset-btn" onclick="setPreset('a', 'defensive')" data-page-node-id="Leli5ppaMkFk5aKMTk5NOG">防守</button>
+                        <button class="preset-btn" onclick="setPreset('a', 'sniper')" data-page-node-id="VbtKBDDnTUFFOIS9bTRNNi">狙击</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vs" data-page-node-id="TvvVf1YdzdMp67oRp4capo">⚔️</div>
+
+            <div class="player-panel blue" data-page-node-id="6wHqi3tmcIv5vHA561V8BI">
+                <h2 data-page-node-id="PEqeaRaW4MU929QID3AL9C">🟦 玩家 B <span class="badge" id="badge-b" data-page-node-id="SH6lJ3m5Huf7T59x43Bso1">balanced</span></h2>
+                <div class="form-row" data-page-node-id="hGbUBzr5ijWpfqFhhfANVA">
+                    <label data-page-node-id="cCbE9bqKvmeX7NHg2pTXF8">名字</label>
+                    <input type="text" id="name-b" value="防守派" data-page-node-id="rLg9rQTtcoLQn8pxUbENiM" />
+                </div>
+                <div class="form-row" data-page-node-id="gB6bmo8tJANKY1SGZngyOD">
+                    <label data-page-node-id="bsPyx0hnaq7OizjB3HY4dz">性格</label>
+                    <select id="persona-b" data-page-node-id="7pWra8tGeSdymxjPiqsZwV">
+                        <option value="aggressive" data-page-node-id="5C26I2r9D5UCBBdwNMduw2">aggressive (激进)</option>
+                        <option value="defensive" selected data-page-node-id="PldFzZU5PBpJ5yXOGaxvmE">defensive (防守)</option>
+                        <option value="sniper" data-page-node-id="xtjmMTFWTvvFAFtKG1CV8X">sniper (狙击)</option>
+                        <option value="balanced" data-page-node-id="apM3XKe6BK31WC1hCdpomH">balanced (均衡)</option>
+                    </select>
+                </div>
+                <div class="form-row" data-page-node-id="sLElHfV2HCEyEYLXqUcjhQ">
+                    <label data-page-node-id="ergCouDbF5FH9TMhTDQkzx">Prompt 策略</label>
+                    <textarea id="prompt-b" placeholder="你是谨慎的战斗特工...">你是谨慎的战斗特工。规则：
+1. 距离敌人 > 15 才射击，避免近战
+2. 持续移动，不 idle
+3. 血量 < 50 立刻远离敌人</textarea>
+                    <div class="preset-row" data-page-node-id="3NGwjjQdk4gOjyaqi7D2FS">
+                        <span style="font-size: 12px; opacity: 0.7;" data-page-node-id="tR4TgsneiADUv8GjMDjaK8">预设:</span>
+                        <button class="preset-btn" onclick="setPreset('b', 'aggressive')" data-page-node-id="khW8kXkmgJwgE4lOzBQRO7">激进</button>
+                        <button class="preset-btn" onclick="setPreset('b', 'defensive')" data-page-node-id="4NMcEC6A3BBjHab6K1UNmj">防守</button>
+                        <button class="preset-btn" onclick="setPreset('b', 'sniper')" data-page-node-id="vfqRfFgqbxkyaIrFW2kamG">狙击</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings" data-page-node-id="IhS53nh4AK4wpFNewFdJed">
+            <div class="form-row" data-page-node-id="yhMboiOyCNCiSq4aIYv1HN">
+                <label data-page-node-id="8BCxBbZ3JnnAJDD9Lk8Rtn">🤖 LLM Provider</label>
+                <select id="provider" data-page-node-id="jsdKst3mlAe5LrWatMythS">
+                    <option value="mock" data-page-node-id="G2EFNYZXVESGUR2XUAyXNZ">mock (无需 API key)</option>
+                </select>
+            </div>
+            <div class="form-row" data-page-node-id="3gMlvKzmdLLQjUYbnpwLh0">
+                <label data-page-node-id="35eaDWeD5oahihxNQNRaTM">🔑 API Key (可选)</label>
+                <input type="password" id="api-key" placeholder="留空用环境变量" data-page-node-id="i6ML7e7WXVZnV0SsAR9rnR" />
+            </div>
+            <div class="form-row" data-page-node-id="8T7T5onJ4XSEUnlZx1gxCC">
+                <label data-page-node-id="35pXBykwWWUCG7MLwHom0Q">📦 模型</label>
+                <input type="text" id="model" placeholder="默认按 provider 自动选" data-page-node-id="NRZaZFZG8TvdCraUFJw5I9" />
+            </div>
+            <div class="form-row" data-page-node-id="52iA79mQS4whaQiq7KFlSY">
+                <label data-page-node-id="ktz3dHtpHkDKRDj3tzoR7m">🗺️ 地图大小</label>
+                <input type="number" id="map-size" value="25" min="20" max="100" data-page-node-id="Sa5bAPff2oVGLzQN79OvvA" />
+            </div>
+        </div>
+
+        <div class="providers-info" id="providers-info" data-page-node-id="wjNiOJ3NAyJLNS0E3ffSqD">加载支持的 LLM provider...</div>
+
+        <div class="actions" data-page-node-id="I1vXeted4ZtmVyZPxhDXk2">
+            <button id="duel-btn" onclick="startDuel()" data-page-node-id="x23g8q1hzyhPEdshGACXLK">⚔️ 开打！</button>
+        </div>
+
+        <div class="status" id="status" data-page-node-id="qcjVj36FTGkfPDA8I74w6E">准备就绪。提交后开始对决。</div>
+        <div class="replay-frame" id="replay-frame" style="display:none;" data-page-node-id="4iDPsCvTzhrii4qkI4pWAT">
+            <h2 data-page-node-id="nhEiw99MEwxdEGfaCGDdL8">🎬 回放</h2>
+            <iframe id="replay-iframe" data-page-node-id="7lChE9RR8ywGDDyoaxm0Do"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const PRESETS = {
+            aggressive: '你是激进的战斗特工。规则：\n1. 视野里有敌人立即射击\n2. 没敌人时朝敌人方向冲锋\n3. 血量 < 20 才考虑逃跑',
+            defensive: '你是谨慎的战斗特工。规则：\n1. 距离敌人 > 15 才射击，避免近战\n2. 持续移动，不 idle\n3. 血量 < 50 立刻远离敌人',
+            sniper: '你是狙击手型特工。规则：\n1. 远距离优先，保持距离\n2. 一旦瞄准就射击\n3. 血量 < 40 找掩体',
+        };
+        function setPreset(side, persona) {
+            document.getElementById('prompt-' + side).value = PRESETS[persona];
+            document.getElementById('persona-' + side).value = persona;
+            updateBadges();
+        }
+        function updateBadges() {
+            document.getElementById('badge-a').textContent = document.getElementById('persona-a').value;
+            document.getElementById('badge-b').textContent = document.getElementById('persona-b').value;
+        }
+        document.getElementById('persona-a').onchange = updateBadges;
+        document.getElementById('persona-b').onchange = updateBadges;
+
+        async function loadProviders() {
+            try {
+                const r = await fetch('/api/llm-providers');
+                const data = await r.json();
+                const sel = document.getElementById('provider');
+                const info = document.getElementById('providers-info');
+                const lines = ['<b>支持的 LLM：</b><br>'];
+                data.providers.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name;
+                    opt.textContent = `${p.name} (${p.default_model})`;
+                    sel.appendChild(opt);
+                    lines.push(`• <b>${p.name}</b>: ${p.api_key_env} → ${p.default_model}<br>`);
+                });
+                info.innerHTML = lines.join('');
+            } catch (e) {
+                document.getElementById('providers-info').textContent = '加载 provider 失败: ' + e.message;
+            }
+        }
+
+        async function startDuel() {
+            const btn = document.getElementById('duel-btn');
+            const status = document.getElementById('status');
+            btn.disabled = true;
+            status.className = 'status running';
+            status.innerHTML = '⏳ 正在调用 LLM 并跑对决...';
+
+            const payload = {
+                player1: {
+                    name: document.getElementById('name-a').value || 'A',
+                    prompt: document.getElementById('prompt-a').value,
+                    persona: document.getElementById('persona-a').value,
+                },
+                player2: {
+                    name: document.getElementById('name-b').value || 'B',
+                    prompt: document.getElementById('prompt-b').value,
+                    persona: document.getElementById('persona-b').value,
+                },
+                provider: document.getElementById('provider').value,
+                api_key: document.getElementById('api-key').value || null,
+                model: document.getElementById('model').value || null,
+                map_size: parseInt(document.getElementById('map-size').value),
+                max_turns: 100,
+                shotgun_duel: true,
+            };
+
+            try {
+                const r = await fetch('/api/duel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || '请求失败');
+
+                status.className = 'status completed';
+                status.innerHTML = `
+                    <h2>🏆 ${data.winner || '平局'} 获胜！</h2>
+                    <p>${data.player1.name}: 血 ${data.player1.health} 杀 ${data.player1.kills}</p>
+                    <p>${data.player2.name}: 血 ${data.player2.health} 杀 ${data.player2.kills}</p>
+                    <p>回合数: ${data.turns} | Provider: ${data.provider}</p>
+                `;
+
+                if (data.replay_url) {
+                    const frame = document.getElementById('replay-frame');
+                    frame.style.display = 'block';
+                    document.getElementById('replay-iframe').src = data.replay_url;
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.innerHTML = '❌ ' + e.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        loadProviders();
+        updateBadges();
+    </script>
+</body>
+</html>

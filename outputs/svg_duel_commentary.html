@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="wzu52WsLhXXqnt5C15mtHW"><head data-page-node-id="iB2f4ybkajFCF4khO9kOYB">
+<meta charset="UTF-8" data-page-node-id="ESsQ5Xxt966MVxdNdDLyhC">
+<title>SVG 对决 + 实时解说</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Microsoft YaHei',Arial,sans-serif;
+  background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+  color:white; min-height:100vh; padding:20px;
+  display:flex; flex-direction:column; align-items:center;
+}
+.container { background:rgba(255,255,255,0.05); border-radius:16px;
+  padding:20px; backdrop-filter:blur(10px); }
+h1 { text-align:center; margin-bottom:12px;
+  text-shadow:2px 2px 4px rgba(0,0,0,0.5); }
+#stage { width:600px; height:600px;
+  border:3px solid rgba(255,255,255,0.2); border-radius:12px;
+  background:#1e293b; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+.controls { margin-top:16px; text-align:center; }
+button {
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3);
+  color:white; padding:8px 16px; border-radius:6px;
+  margin:3px; cursor:pointer; font-size:14px;
+}
+button:hover { background:rgba(255,255,255,0.3); }
+.info { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.card { background:rgba(255,255,255,0.08); padding:10px 14px; border-radius:8px; }
+.hp { background:rgba(0,0,0,0.4); height:12px; border-radius:6px; overflow:hidden; margin-top:4px; }
+.hpfill { height:100%; background:linear-gradient(90deg,#22c55e,#16a34a); }
+
+/* 实时解说面板 */
+.comm-panel {
+  margin-top:12px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(251,191,36,0.4);
+  border-radius:10px;
+  padding:10px 16px;
+  min-height:60px;
+  max-width:600px;
+  width:100%;
+}
+.comm-title {
+  font-size:13px;
+  color:#fbbf24;
+  font-weight:bold;
+  margin-bottom:6px;
+  letter-spacing:1px;
+}
+.comm-empty { color:rgba(255,255,255,0.4); font-style:italic; font-size:12px; padding:6px 0; }
+.comm-line {
+  padding:4px 8px;
+  margin:3px 0;
+  font-size:13px;
+  line-height:1.4;
+  background:rgba(255,255,255,0.04);
+  border-radius:0 4px 4px 0;
+}
+.comm-turn { color:rgba(255,255,255,0.5); font-size:11px; margin-right:6px; }
+.comm-text { color:rgba(255,255,255,0.92); font-family:'Microsoft YaHei',sans-serif; }
+
+/* 飞过大气泡 */
+.commentary-bubble {
+  animation: slideIn 0.6s ease-out;
+}
+@keyframes slideIn {
+  from { transform:translate(100px, -30px); opacity:0; }
+  to { transform:translate(100px, 20px); opacity:0.95; }
+}
+</style>
+</head>
+<body data-page-node-id="7YVOmA2qx1xTo0HSZNkL60">
+<div class="container" data-page-node-id="pwsdgLYeMJEVWgwPK6B6QN">
+<h1 data-page-node-id="kEKhxE4G0v0ukW3fTdGMiC">🏟️ SVG 对决 + 实时解说</h1>
+<div id="stage" data-page-node-id="gFPD32jN12dFKxuPAJEduE"></div>
+<div class="controls" data-page-node-id="KDrgijA5PlX5ARtwcnVeVW">
+<button onclick="togglePlay()" data-page-node-id="JF1PCba3OFclsMScISN3Sv">⏯ 播放/暂停</button>
+<button onclick="reset()" data-page-node-id="iZjGRRgKxtsVYiMvd4ZVkH">🔄 重置</button>
+<button onclick="speedUp()" data-page-node-id="Und3KNHfr4GsyOSsOaCQuu">⏩ 加速</button>
+<button onclick="speedDown()" data-page-node-id="BAkghtIlDMLzeUIID4ro2f">⏪ 减速</button>
+<button onclick="toggleSound()" data-page-node-id="sbK3gl7R13yCTLNG800L5G">🔊 音效: <span id="soundStatus" data-page-node-id="gaYWxPnPsKEcNgE2TuyrGB">关</span></button>
+<span style="margin-left:12px;" data-page-node-id="EYRsByIsfI2EplCHpiOBF4">速度: <span id="speedDisplay" data-page-node-id="UGuQkFzmyW1nzP01asEAL3">6</span> FPS</span>
+<div style="margin-top:8px;" data-page-node-id="Ba0vDXErfBv7gMUm4ODTyw">
+<input id="timeline" type="range" min="0" value="0" step="1" style="width:600px;" data-page-node-id="uwkHlymDIEd1FVfsbWrn2r" />
+<span id="frameLabel" data-page-node-id="W7k9KrAnz3NKdNVBDWj5Lo">0</span>/<span id="frameTotal" data-page-node-id="pui9sfG5wAHTOsrI0XHze4">0</span>
+</div>
+</div>
+<div class="info" id="info" data-page-node-id="WVgIXq6GgJkPBmvoikzLeE"></div>
+<div id="commentary" data-page-node-id="PZF8d1JKBDkHcAUi22VFHQ"></div>
+</div>
+<svg width="0" height="0" style="position:absolute" data-page-node-id="eVIGpozynLs1frETK64CGi">
+<defs data-page-node-id="qy115nM0VmLQlr54vcVFcT">
+<symbol id="obstacle_brick" viewBox="0 0 32 32" data-page-node-id="tBouQTrNLPLNwEDRdRmQ0t">
+<rect x="1" y="1" width="30" height="30" fill="#92400e" stroke="#000" stroke-width="1.5" data-page-node-id="KodHXj8JoI0e0xSpCabNxl"/>
+<rect x="1" y="1" width="30" height="10" fill="rgba(0,0,0,0.3)" data-page-node-id="tFrYAifCuiKrBM2DSV9w9b"/>
+<line x1="0" y1="11" x2="32" y2="11" stroke="#000" stroke-width="0.5" stroke-dasharray="3,2" data-page-node-id="fvPkI4pfzkffjIwYUHyt9r"/>
+<line x1="11" y1="0" x2="11" y2="11" stroke="#000" stroke-width="0.5" data-page-node-id="FQ7J28oUkBfHptT2FcnNSh"/>
+<line x1="21" y1="11" x2="21" y2="32" stroke="#000" stroke-width="0.5" data-page-node-id="1N0y6uGNfxkFixUUgGvnWo"/>
+<text x="16" y="22" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="middle" data-page-node-id="Qj2u8Fj6vmeIwdcJt0hGid">墙</text>
+</symbol>
+<symbol id="supply_health" viewBox="0 0 24 24" data-page-node-id="iNPasgxxNjmTPETCGKlzE3">
+<path d="M 12 21 C 4 14 2 12 5 9 C 8 6 11 7 12 10 C 13 7 16 6 19 9 C 22 12 20 14 12 21 Z"
+  fill="#ef4444" stroke="#000" stroke-width="1.5" data-page-node-id="z1Ji8dkmH5rBndnbyK0gCB"/>
+<text x="12" y="14" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="nvXZBNaoLjAohhplHye52g">+</text>
+</symbol>
+<symbol id="supply_ammo" viewBox="0 0 24 24" data-page-node-id="IQaw9BIXQD6P4Qby0hN4Ac">
+<rect x="3" y="6" width="18" height="14" fill="#3b82f6" stroke="#000" stroke-width="1.5" data-page-node-id="kyLOU5Qh2oSuwHmMvaw94M"/>
+<text x="12" y="17" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="9YT3uIvWrVgibsBgIJ7dsJ">A</text>
+</symbol>
+<symbol id="supply_weapon_sg" viewBox="0 0 24 24" data-page-node-id="wXtDMKHEnLN4iMqhQen59S">
+<rect x="3" y="6" width="18" height="14" fill="#f97316" stroke="#000" stroke-width="1.5" rx="2" data-page-node-id="BgPdCQtkzJfBlfcfMDBnYh"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="6Ud1dmMDF7DCBtHKEOi4lW">SG</text>
+</symbol>
+<symbol id="supply_weapon_sr" viewBox="0 0 24 24" data-page-node-id="kNwVZqZn2BN6SmWZJc4cmS">
+<rect x="3" y="6" width="18" height="14" fill="#a855f7" stroke="#000" stroke-width="1.5" rx="2" data-page-node-id="gpzddKgS7xfTYBxZYxl2T4"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="J6TqCo97HNZkVVMDS39y19">SR</text>
+</symbol>
+<symbol id="supply_weapon_rl" viewBox="0 0 24 24" data-page-node-id="NA2qCSJ0V3PQNfSSFnNrIL">
+<rect x="3" y="6" width="18" height="14" fill="#dc2626" stroke="#000" stroke-width="1.5" rx="2" data-page-node-id="6umB0rzNkv8anImcsEk6Wt"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="xIq8hXff06hO6mPSBEceSx">RL</text>
+</symbol>
+<symbol id="bullet_normal" viewBox="0 0 14 14" data-page-node-id="e0eeLNgAGpPw8KzcQJLHYZ">
+<circle cx="7" cy="7" r="5" fill="#fbbf24" stroke="#000" stroke-width="1" data-page-node-id="dnN0nXbpEv2kWznbV2jjje"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6" data-page-node-id="byfR2ENT6EtYZopxGrvBiI"/>
+</symbol>
+<symbol id="bullet_shotgun" viewBox="0 0 14 14" data-page-node-id="heUr8bO7baFPJ6yybcX0PL">
+<circle cx="7" cy="7" r="5" fill="#f97316" stroke="#000" stroke-width="1" data-page-node-id="hTVDGOAFRl5Y2XQLVdOtgC"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6" data-page-node-id="iLvpKR4f1aqWVLtsbeMXA3"/>
+</symbol>
+<symbol id="bullet_sniper" viewBox="0 0 14 14" data-page-node-id="blhVhEhZptBJWxrFnnMDVF">
+<circle cx="7" cy="7" r="5" fill="#a855f7" stroke="#000" stroke-width="1" data-page-node-id="cm7LqYzHNG8xGuryev9YiS"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6" data-page-node-id="1fZrSAd31rxYN7I5ruSwFy"/>
+</symbol>
+<symbol id="bullet_rocket" viewBox="0 0 14 14" data-page-node-id="kwmCbQLkNZzFdNVhJWHua3">
+<circle cx="7" cy="7" r="6" fill="#dc2626" stroke="#000" stroke-width="1" data-page-node-id="2NwKg9ic1fQajfUGcjkTJd"/>
+<path d="M 7 1 L 5 4 L 9 4 Z" fill="#fef3c7" data-page-node-id="wt2VfIOUNgZyn3Tif1NddE"/>
+</symbol>
+</defs>
+</svg>
+<script>
+const states = [{"turn": 17, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [16.12576452749533, 21.228205378569648], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 36, "position": [20.185352100465494, 18.309344515598234], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [16.12576452749533, 21.228205378569648], "intensity": 1.0}, {"position": [20.185352100465494, 18.309344515598234], "intensity": 1.0}]}, {"turn": 0, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 19.624838671659997], "direction": [0.3581959660517318, 0.9336464266007055], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [19.902518604829083, 7.912711222507882], "direction": [-0.7509163544682252, -0.6603973263060282], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 1, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 19.624838671659997], "direction": [0.7770300194342609, 0.6294635405629083], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [19.902518604829083, 7.912711222507882], "direction": [-0.9805113022396975, -0.19646268393822935], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 2, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 19.624838671659997], "direction": [0.9876595066146402, 0.15661640716644473], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [19.902518604829083, 7.912711222507882], "direction": [-0.9473790384064545, 0.32011397593366897], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 3, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 19.624838671659997], "direction": [0.9336464266007055, -0.3581959660517317], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [19.902518604829083, 7.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 4, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 19.624838671659997], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [19.902518604829083, 7.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [{"kind": "normal", "position": [17.921326625910996, 10.165460285912555], "direction": [-0.6603973263060288, 0.7509163544682247], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 5, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 19.624838671659997], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [19.902518604829083, 9.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [{"kind": "normal", "position": [15.94013464699291, 12.41820934931723], "direction": [-0.6603973263060288, 0.7509163544682247], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [11.703721626630344, 17.142369164966954], "direction": [0.46254414410664335, -0.8865962523903723], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [12.171095936707887, 17.44915461724407], "direction": [0.6294635405629085, -0.7770300194342608], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [12.568205016854941, 17.842677727002684], "direction": [0.7712882120439993, -0.6364860516633265], "owner": "\u6fc0\u8fdb\u6d3e"}], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 6, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 17.624838671659997], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 100, "position": [17.902518604829083, 9.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [{"kind": "shotgun", "position": [13.933593850284032, 15.27347056282814], "direction": [0.6294635405629085, -0.7770300194342608], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [14.72781201057814, 16.06051678234537], "direction": [0.7712882120439993, -0.6364860516633265], "owner": "\u6fc0\u8fdb\u6d3e"}], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 7, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [10.408598023131743, 17.624838671659997], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 84, "position": [17.902518604829083, 11.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [17.902518604829083, 11.912711222507882], "intensity": 1.0}]}, {"turn": 8, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [12.408598023131743, 17.624838671659997], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 84, "position": [17.902518604829083, 13.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 9, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [14.408598023131743, 17.624838671659997], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 84, "position": [17.902518604829083, 13.912711222507882], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [14.408598023131743, 17.624838671659997], "intensity": 1.0}]}, {"turn": 10, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [13.910609564702353, 17.8688681763672], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 84, "position": [18.400507063258473, 15.668681717800679], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 11, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [13.282165385508337, 18.424189981312765], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 60, "position": [17.02895124245249, 15.113359912855115], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [17.02895124245249, 15.113359912855115], "intensity": 1.0}]}, {"turn": 12, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [14.155965365931078, 19.26931752965578], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 60, "position": [18.15515126202975, 16.2682323645121], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 13, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [14.920158147033158, 19.888143560907007], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 60, "position": [19.390958480927672, 17.649406333260874], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 14, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [16.641068692634857, 21.215262312579153], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 60, "position": [17.67004793532597, 16.32228758158873], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 15, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [15.267419210081146, 20.40735076904839], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 60, "position": [19.04369741787968, 17.130199125119493], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 16, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 75, "position": [16.12576452749533, 21.228205378569648], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 60, "position": [20.185352100465494, 18.309344515598234], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 18, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [16.872466969693818, 21.787349398777884], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 36, "position": [21.43864965826701, 19.750200495389997], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 19, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [18.48611058009071, 23.177475786040482], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 36, "position": [19.82500604787012, 18.3600741081274], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 20, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [17.021777992537338, 22.07145738721365], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 36, "position": [21.28933863542349, 19.466092506954233], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 21, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [17.74015193444743, 22.413609826499876], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 36, "position": [22.5709646935134, 21.123940067668006], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 22, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [18.80165934944068, 23.870430864168902], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 36, "position": [21.50945727852015, 19.66711902999898], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 23, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [18.216404485770855, 24], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [22.094712142189973, 21.19090219222054], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [22.094712142189973, 21.19090219222054], "intensity": 1.0}]}, {"turn": 24, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [20.216404485770855, 24], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [22.094712142189973, 19.19090219222054], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 25, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [20.216404485770855, 22.0], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [22.094712142189973, 17.19090219222054], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 26, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [20.216404485770855, 20.0], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [22.094712142189973, 15.190902192220541], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 27, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [20.216404485770855, 18.0], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [22.094712142189973, 13.190902192220541], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 28, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [20.216404485770855, 16.0], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 0}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [22.094712142189973, 11.190902192220541], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 29, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 50, "position": [20.216404485770855, 16.0], "direction": [0.6294635405629085, -0.7770300194342608], "kills": 1}, {"name": "\u9632\u5b88\u6d3e", "health": -4, "position": [22.094712142189973, 9.190902192220541], "direction": [-0.6603973263060288, 0.7509163544682247], "kills": 0}], "bullets": [{"kind": "shotgun", "position": [22.376011479494053, 14.217839055342687], "direction": [0.7712882120439993, -0.6364860516633265], "owner": "\u6fc0\u8fdb\u6d3e"}], "obstacles": [{"rect": [12, 10, 2, 5]}, {"rect": [5, 18, 3, 3]}], "supplies": [{"position": [20, 12], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [22.094712142189973, 9.190902192220541], "intensity": 1.0}]}];
+const commentary = [{"turn": 0, "text": "\u2694\ufe0f  \u6fc0\u8fdb\u6d3e \u5bf9\u51b3 \u9632\u5b88\u6d3e\uff0c\u8c01\u662f\u6700\u7ec8\u80dc\u8005\uff1f", "importance": 3}, {"turn": 7, "text": "\ud83d\udca5 \u5f00\u5c40\u9996\u6740\uff01\u6fc0\u8fdb\u6d3e \u7ed9 \u9632\u5b88\u6d3e \u6765\u4e86\u4e00\u53d1\uff01", "importance": 3}, {"turn": 9, "text": "\ud83d\udd25 \u9006\u8f6c\uff01\u9632\u5b88\u6d3e \u6b8b\u8840\u53cd\u6740\uff01", "importance": 3}, {"turn": 11, "text": "\u26a1 \u6fc0\u8fdb\u6d3e \u4e0d\u5230\u6700\u540e\u4e00\u523b\u4e0d\u653e\u5f03\uff01", "importance": 3}, {"turn": 14, "text": "\ud83d\udca8 \u6fc0\u8fdb\u6d3e \u5b8c\u7f8e\u95ea\u907f\uff01\u5b50\u5f39\u64e6\u80a9\u800c\u8fc7\uff01", "importance": 2}, {"turn": 14, "text": "\ud83d\udc7b \u9632\u5b88\u6d3e \u7075\u6d3b\u5982\u9b3c\uff0c\u654c\u4eba\u7784\u4e0d\u51c6\uff01", "importance": 2}, {"turn": 19, "text": "\ud83d\udc7b \u6fc0\u8fdb\u6d3e \u7075\u6d3b\u5982\u9b3c\uff0c\u654c\u4eba\u7784\u4e0d\u51c6\uff01", "importance": 2}, {"turn": 19, "text": "\ud83d\udc7b \u9632\u5b88\u6d3e \u7075\u6d3b\u5982\u9b3c\uff0c\u654c\u4eba\u7784\u4e0d\u51c6\uff01", "importance": 2}, {"turn": 23, "text": "\ud83e\ude78 \u9632\u5b88\u6d3e \u8840\u7ebf\u544a\u6025 (12%)\uff0c\u9700\u8981\u8865\u7ed9\uff01", "importance": 2}, {"turn": 29, "text": "\u26a1 \u7ec8\u7ed3\u6280\uff01\u6fc0\u8fdb\u6d3e \u62ff\u4e0b \u9632\u5b88\u6d3e\uff01", "importance": 3}, {"turn": 29, "text": "\ud83c\udfc6 \u6bd4\u8d5b\u7ed3\u675f\uff01\u6fc0\u8fdb\u6d3e \u51fb\u8d25 \u9632\u5b88\u6d3e\uff01", "importance": 3}];
+const canvasW = 600, canvasH = 600;
+const mapW = 25, mapH = 25;
+const agentColors = {};
+
+// 分配颜色
+const colorList = ["#a855f7","#ec4899","#22d3ee","#facc15","#84cc16","#fb923c"];
+states.forEach(f => {
+  f.agents.forEach((a, i) => {
+    if (!agentColors[a.name]) agentColors[a.name] = colorList[Object.keys(agentColors).length % colorList.length];
+  });
+});
+
+let currentFrame = 0, isPlaying = true, fps = 6;
+// URL 参数 ?pause=1 停止自动播放（用于截图）
+if (new URLSearchParams(window.location.search).get('pause') === '1') isPlaying = false;
+let lastTime = 0;
+
+const stage = document.getElementById('stage');
+const timeline = document.getElementById('timeline');
+const frameLabel = document.getElementById('frameLabel');
+const frameTotal = document.getElementById('frameTotal');
+const info = document.getElementById('info');
+
+frameTotal.textContent = states.length - 1;
+timeline.max = states.length - 1;
+
+function renderFrame(frameIdx) {
+  if (frameIdx >= states.length) return;
+  const f = states[frameIdx];
+  const currentFrame = frameIdx;  // 给角色动画用
+  // 统一缩放（地图不形变）+ 居中留白
+  const scale = Math.min(canvasW / mapW, canvasH / mapH);
+  const contentW = mapW * scale;
+  const contentH = mapH * scale;
+  const offsetX = (canvasW - contentW) / 2;
+  const offsetY = (canvasH - contentH) / 2;
+  const scaleX = scale, scaleY = scale;
+
+  let svg = `<svg width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect width="${canvasW}" height="${canvasH}" fill="#1e293b"/>`;
+  svg += `<rect width="${canvasW}" height="${canvasH}" fill="#334155" opacity="0.3"/>`;
+
+  // 网格（用统一 scale 避免形变）
+  for (let x = 0; x <= mapW; x += 10) {
+    const px = offsetX + x*scale;
+    svg += `<line x1="${px}" y1="${offsetY}" x2="${px}" y2="${offsetY+contentH}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+  }
+  for (let y = 0; y <= mapH; y += 10) {
+    const py = offsetY + y*scale;
+    svg += `<line x1="${offsetX}" y1="${py}" x2="${offsetX+contentW}" y2="${py}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+  }
+
+  // 障碍物
+  (f.obstacles || []).forEach(obs => {
+    const [rx, ry, rw, rh] = obs.rect;
+    const x = offsetX + rx * scaleX, y = offsetY + ry * scaleY, w = rw * scaleX, h = rh * scaleY;
+    svg += `<g transform="translate(${x},${y})">`;
+    svg += `<svg width="${w}" height="${h}" viewBox="0 0 32 32">`;
+    svg += `<use href="#obstacle_brick" width="32" height="32"/>`;  // 关键：width/height
+    svg += `</svg></g>`;
+  });
+
+  // 补给
+  (f.supplies || []).forEach(s => {
+    const sx = offsetX + s.position[0] * scaleX - 8;
+    const sy = offsetY + s.position[1] * scaleY - 8;
+    let kind = s.type;
+    let svgId = 'supply_health';
+    if (kind.includes('weapon_shotgun')) svgId = 'supply_weapon_sg';
+    else if (kind.includes('weapon_sniper')) svgId = 'supply_weapon_sr';
+    else if (kind.includes('weapon_rocket')) svgId = 'supply_weapon_rl';
+    else if (kind.startsWith('ammo')) svgId = 'supply_ammo';
+    // 关键：必须加 width/height，否则浏览器拉伸填满父容器
+    svg += `<use href="#${svgId}" x="${sx-2}" y="${sy-2}" width="20" height="20"/>`;
+  });
+
+  // 子弹
+  (f.bullets || []).forEach(b => {
+    const bx = offsetX + b.position[0] * scaleX;
+    const by = offsetY + b.position[1] * scaleY;
+    const [dx, dy] = b.direction || [1, 0];
+    const tx = bx - dx * 8, ty = by - dy * 8;
+    // 尾迹
+    svg += `<line x1="${tx}" y1="${ty}" x2="${bx}" y2="${by}" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>`;
+    // 关键：必须加 width/height
+    svg += `<use href="#bullet_${b.kind || 'normal'}" x="${bx-5}" y="${by-5}" width="10" height="10"/>`;
+  });
+
+  // 爆炸 / 受击效果（缩小到合理范围）
+  (f.explosions || []).forEach(e => {
+    const ex = offsetX + e.position[0] * scaleX;
+    const ey = offsetY + e.position[1] * scaleY;
+    const r = 10;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r}" fill="#fbbf24" opacity="0.7"/>`;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r*0.6}" fill="#f97316" opacity="0.9"/>`;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r*0.3}" fill="#fef3c7"/>`;
+    // 放射线
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI * 2 * i) / 6;
+      const x1 = ex + Math.cos(a) * r * 0.5;
+      const y1 = ey + Math.sin(a) * r * 0.5;
+      const x2 = ex + Math.cos(a) * r * 1.3;
+      const y2 = ey + Math.sin(a) * r * 1.3;
+      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>`;
+    }
+    // 受击感叹号（8px）
+    svg += `<text x="${ex}" y="${ey+3}" font-size="9" text-anchor="middle" fill="#000" font-weight="bold">!</text>`;
+  });
+
+  // Agent
+  f.agents.forEach(a => {
+    const ax = offsetX + a.position[0] * scaleX;
+    const ay = offsetY + a.position[1] * scaleY;
+    const [dx, dy] = a.direction || [1, 0];
+    const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    const color = agentColors[a.name] || '#3b82f6';
+    const weapon = a.weapon || 'normal';
+    const hp = Math.max(0, a.health) / 100;
+    const face = hp > 0.5 ? 'happy' : (hp > 0.25 ? 'angry' : 'scared');
+    const cx = 18, cy = 18, r = 12;
+    const pupilOff = (deg > 90 || deg < -90) ? -2 : 2;
+    const hpColor = hp > 0.5 ? '#22c55e' : (hp > 0.25 ? '#eab308' : '#ef4444');
+    const weaponColor = {normal:'#888',shotgun:'#f97316',sniper:'#a855f7',rocket:'#dc2626'}[weapon];
+
+    svg += `<g transform="translate(${ax-12},${ay-12})">`;
+    svg += `<ellipse cx="12" cy="22" ry="2" rx="8" fill="rgba(0,0,0,0.4)"/>`;
+
+    // 死亡：渲染骷髅
+    if (a.health <= 0) {
+      svg += `<circle cx="12" cy="11" r="8" fill="#fff" stroke="#000" stroke-width="2"/>`;
+      svg += `<path d="M 5 8 Q 12 4 19 8" stroke="#000" stroke-width="1" fill="none"/>`;
+      svg += `<circle cx="9" cy="10" r="3" fill="#000"/>`;
+      svg += `<circle cx="15" cy="10" r="3" fill="#000"/>`;
+      svg += `<polygon points="12,11 10,14 14,14" fill="#000"/>`;
+      svg += `<line x1="8.5" y1="15" x2="8.5" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="11" y1="15" x2="11" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="13" y1="15" x2="13" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="15.5" y1="15" x2="15.5" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<text x="12" y="9" font-size="8" text-anchor="middle" fill="#dc2626" font-weight="bold">✕</text>`;
+      svg += `</g>`;
+      return;
+    }
+
+    // 走动动画：交替脚位置
+    const walking = Math.abs(dx) + Math.abs(dy) > 0.01;
+    const legPhase = walking ? Math.floor(currentFrame / 4) % 2 : 0;
+    const legY = legPhase ? 21 : 22;
+    const legOff = legPhase ? 0.8 : -0.8;
+    svg += `<ellipse cx="${9+legOff}" cy="${legY}" rx="2" ry="1.2" fill="#333"/>`;
+    svg += `<ellipse cx="${15-legOff}" cy="${legY}" rx="2" ry="1.2" fill="#333"/>`;
+
+    svg += `<circle cx="12" cy="12" r="8" fill="${color}" stroke="#000" stroke-width="1.5"/>`;
+    svg += `<circle cx="9" cy="9" r="2.5" fill="rgba(255,255,255,0.4)"/>`;
+    // 表情：scared / angry / happy 三种
+    if (face === 'scared') {
+      // X 眼
+      svg += `<line x1="7" y1="8" x2="11" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="11" y1="8" x2="7" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="13" y1="8" x2="17" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="17" y1="8" x2="13" y2="12" stroke="#000" stroke-width="1"/>`;
+      // O 嘴
+      svg += `<ellipse cx="12" cy="16" rx="2" ry="2.5" fill="#000"/>`;
+    } else if (face === 'angry') {
+      // V 眉
+      svg += `<line x1="6" y1="9" x2="10" y2="11" stroke="#000" stroke-width="1.2"/>`;
+      svg += `<line x1="18" y1="9" x2="14" y2="11" stroke="#000" stroke-width="1.2"/>`;
+      svg += `<circle cx="9" cy="10" r="1.2" fill="#000"/>`;
+      svg += `<circle cx="15" cy="10" r="1.2" fill="#000"/>`;
+      // 直线嘴
+      svg += `<line x1="9" y1="16" x2="15" y2="16" stroke="#000" stroke-width="1.2"/>`;
+    } else {
+      // happy
+      svg += `<circle cx="9" cy="10" r="1.5" fill="#fff"/>`;
+      svg += `<circle cx="15" cy="10" r="1.5" fill="#fff"/>`;
+      svg += `<circle cx="${9+pupilOff}" cy="10" r="0.8" fill="#000"/>`;
+      svg += `<circle cx="${15+pupilOff}" cy="10" r="0.8" fill="#000"/>`;
+      // 微笑
+      svg += `<path d="M 9 15 Q 12 17 15 15" stroke="#000" stroke-width="1" fill="none"/>`;
+    }
+    // 武器（朝朝向）
+    svg += `<g transform="rotate(${deg} 12 12)"><rect x="18" y="10.5" width="4" height="3" fill="${weaponColor}" stroke="#000" stroke-width="0.4"/></g>`;
+    // 血量环
+    const circ = 2 * Math.PI * 11;
+    svg += `<circle cx="12" cy="12" r="11" fill="none" stroke="#333" stroke-width="1.5"/>`;
+    svg += `<circle cx="12" cy="12" r="11" fill="none" stroke="${hpColor}" stroke-width="1.5" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-hp)}" transform="rotate(-90 12 12)"/>`;
+    svg += `</g>`;
+  });
+
+  svg += `</svg>`;
+  stage.innerHTML = svg;
+
+  // 信息面板
+  let infoHtml = '';
+  f.agents.forEach(a => {
+    const color = agentColors[a.name] || '#3b82f6';
+    const hp = Math.max(0, a.health);
+    infoHtml += `<div class="card" style="border-left:4px solid ${color}">
+      <b>${a.name}</b> · 血 ${hp}/100 · 击杀 ${a.kills || 0}
+      <div class="hp"><div class="hpfill" style="width:${hp}%"></div></div>
+      ${a.weapon && a.weapon !== 'normal' ? '<small>武器:' + a.weapon + '</small>' : ''}
+    </div>`;
+  });
+  info.innerHTML = infoHtml;
+
+  // 实时解说气泡（最近 1 个 importance>=3 事件）
+  const recentComm = commentary.filter(c => c.turn <= frameIdx && c.turn > frameIdx - 5);
+  // 找最近一个 importance>=3 的事件作为"飞过"气泡（最近 5 帧内）
+  const flyIn = recentComm.filter(c => c.importance >= 3).pop();
+  if (flyIn) {
+    // 气泡放在画布底部（不挡角色，避开 z-index 风险）
+    svg += `<g class="commentary-bubble" transform="translate(${canvasW/2 - 200}, ${canvasH - 80})">
+      <rect x="0" y="0" width="400" height="60" rx="10" fill="#fbbf24" stroke="#000" stroke-width="2" opacity="0.98"/>
+      <text x="20" y="38" font-size="20" font-weight="bold" fill="#000" font-family="Microsoft YaHei, sans-serif">${flyIn.text.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</text>
+    </g>`;
+  }
+
+  // 解说面板：画布下方显示最近 3 条
+  let panelHtml = '<div class="comm-panel">';
+  panelHtml += '<div class="comm-title">📺 实时解说</div>';
+  // 取最近的 3 条（按 turn 升序）
+  const displayComm = commentary.filter(c => c.turn <= frameIdx).slice(-3);
+  if (displayComm.length === 0) {
+    panelHtml += '<div class="comm-empty">（等待精彩时刻...）</div>';
+  } else {
+    displayComm.forEach(c => {
+      const color = c.importance >= 3 ? '#fbbf24' : (c.importance >= 2 ? '#94a3b8' : '#475569');
+      panelHtml += `<div class="comm-line" style="border-left:3px solid ${color}">
+        <span class="comm-turn">[回合 ${c.turn}]</span>
+        <span class="comm-text">${c.text}</span>
+      </div>`;
+    });
+  }
+  panelHtml += '</div>';
+  // 用 innerHTML 设置（panel 在 stage 外的 div）
+  const commPanel = document.getElementById('commentary');
+  if (commPanel) commPanel.innerHTML = panelHtml;
+
+  timeline.value = frameIdx;
+  frameLabel.textContent = frameIdx;
+}
+
+function gameLoop(t) {
+  if (isPlaying && t - lastTime > 1000/fps) {
+    currentFrame = (currentFrame + 1) % states.length;
+    renderFrame(currentFrame);
+    lastTime = t;
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+function togglePlay() { isPlaying = !isPlaying; }
+function reset() { currentFrame = 0; renderFrame(0); isPlaying = true; lastTime = 0; }
+function speedUp() { fps = Math.min(fps + 5, 60); document.getElementById('speedDisplay').textContent = fps; }
+function speedDown() { fps = Math.max(fps - 5, 5); document.getElementById('speedDisplay').textContent = fps; }
+
+// ====== Web Audio 8-bit 音效 ======
+let audioCtx = null;
+let soundEnabled = false;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundStatus').textContent = soundEnabled ? '开' : '关';
+  if (soundEnabled) { ensureAudio(); audioCtx.resume(); playSound('pickup'); }
+}
+function playSound(kind) {
+  if (!soundEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (kind === 'shoot') {
+    // 短促方波（800Hz）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.08);
+  } else if (kind === 'explode') {
+    // 低频 + 噪声（爆炸）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } else if (kind === 'pickup') {
+    // 上升音（拾取）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+}
+// 监听帧变化触发音效
+let lastFrameIdx = -1;
+let lastBulletCount = 0;
+let lastExplosionCount = 0;
+const origRenderFrame = renderFrame;
+renderFrame = function(frameIdx) {
+  origRenderFrame(frameIdx);
+  if (frameIdx !== lastFrameIdx && soundEnabled) {
+    const cur = states[frameIdx];
+    if (cur) {
+      const bc = cur.bullets ? cur.bullets.length : 0;
+      const ec = cur.explosions ? cur.explosions.length : 0;
+      if (bc > lastBulletCount) playSound('shoot');
+      if (ec > lastExplosionCount) playSound('explode');
+      lastBulletCount = bc;
+      lastExplosionCount = ec;
+    }
+  }
+  lastFrameIdx = frameIdx;
+};
+timeline.oninput = () => { currentFrame = parseInt(timeline.value); renderFrame(currentFrame); };
+
+renderFrame(0);
+requestAnimationFrame(gameLoop);
+</script>
+</body></html>

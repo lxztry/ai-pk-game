@@ -109,3 +109,15 @@ venv.bak/
 
 # IDE settings
 .idea/
+
+# AI竞技平台特定忽略
+replays/                   # 本地比赛回放 HTML
+online/replays/            # 在线服务回放 HTML
+*.html                     # 任何生成的 HTML 回放文件
+*.db                       # SQLite 数据库
+data/                      # 运行时数据目录
+!data/.gitkeep
+reports/                   # 生成的报告
+!reports/.gitkeep
+.claude/                   # Claude 配置
+.cursor/                   # Cursor 配置

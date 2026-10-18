@@ -13,11 +13,11 @@ from contextlib import contextmanager
 
 class Database:
     """数据库管理类"""
-    
+
     def __init__(self, db_path: str = None):
+        from pathlib import Path  # 修复：在顶层 import，else 分支也能用
         if db_path is None:
             # 默认使用项目根目录下的 online/rankings.db
-            from pathlib import Path
             project_root = Path(__file__).parent.parent
             self.db_path = project_root / "online" / "rankings.db"
         else:
@@ -41,6 +41,8 @@ class Database:
                     timeout=timeout,
                     check_same_thread=False  # 允许多线程访问
                 )
+                # 启用外键约束（SQLite 默认不强制）
+                conn.execute("PRAGMA foreign_keys = ON")
                 # 设置WAL模式以提高并发性能
                 conn.execute("PRAGMA journal_mode=WAL")
                 yield conn
@@ -154,74 +156,89 @@ class Database:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
     
-    def update_match_result(self, player1_name: str, player2_name: str, 
+    def update_match_result(self, player1_name: str, player2_name: str,
                            winner_name: Optional[str],
                            player1_kills: int, player2_kills: int,
                            player1_health: int, player2_health: int,
                            replay_file: Optional[str] = None):
         """更新对战结果"""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # 插入对战记录
-            cursor.execute("""
-                INSERT INTO matches 
-                (player1_name, player2_name, winner_name, 
-                 player1_kills, player2_kills, player1_health, player2_health, replay_file)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (player1_name, player2_name, winner_name,
-                  player1_kills, player2_kills, player1_health, player2_health, replay_file))
-            
-            # 更新玩家统计
-            if winner_name == player1_name:
-                # player1 获胜
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # 插入对战记录
                 cursor.execute("""
-                    UPDATE players 
-                    SET points = points + 3, wins = wins + 1, 
-                        kills = kills + ?, deaths = deaths + ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE name = ?
-                """, (player1_kills, player2_kills, player1_name))
-                
-                cursor.execute("""
-                    UPDATE players 
-                    SET losses = losses + 1,
-                        kills = kills + ?, deaths = deaths + ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE name = ?
-                """, (player2_kills, player1_kills, player2_name))
-            elif winner_name == player2_name:
-                # player2 获胜
-                cursor.execute("""
-                    UPDATE players 
-                    SET points = points + 3, wins = wins + 1,
-                        kills = kills + ?, deaths = deaths + ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE name = ?
-                """, (player2_kills, player1_kills, player2_name))
-                
-                cursor.execute("""
-                    UPDATE players 
-                    SET losses = losses + 1,
-                        kills = kills + ?, deaths = deaths + ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE name = ?
-                """, (player1_kills, player2_kills, player1_name))
-            else:
-                # 平局（超时）
-                cursor.execute("""
-                    UPDATE players 
-                    SET kills = kills + ?, deaths = deaths + ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE name = ?
-                """, (player1_kills, player2_kills, player1_name))
-                
-                cursor.execute("""
-                    UPDATE players 
-                    SET kills = kills + ?, deaths = deaths + ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE name = ?
-                """, (player2_kills, player1_kills, player2_name))
+                    INSERT INTO matches
+                    (player1_name, player2_name, winner_name,
+                     player1_kills, player2_kills, player1_health, player2_health, replay_file)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (player1_name, player2_name, winner_name,
+                      player1_kills, player2_kills, player1_health, player2_health, replay_file))
+
+                # 更新玩家统计
+                if winner_name == player1_name:
+                    # player1 获胜
+                    cursor.execute("""
+                        UPDATE players
+                        SET points = points + 3, wins = wins + 1,
+                            kills = kills + ?, deaths = deaths + ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE name = ?
+                    """, (player1_kills, player2_kills, player1_name))
+
+                    cursor.execute("""
+                        UPDATE players
+                        SET losses = losses + 1,
+                            kills = kills + ?, deaths = deaths + ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE name = ?
+                    """, (player2_kills, player1_kills, player2_name))
+                elif winner_name == player2_name:
+                    # player2 获胜
+                    cursor.execute("""
+                        UPDATE players
+                        SET points = points + 3, wins = wins + 1,
+                            kills = kills + ?, deaths = deaths + ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE name = ?
+                    """, (player2_kills, player1_kills, player2_name))
+
+                    cursor.execute("""
+                        UPDATE players
+                        SET losses = losses + 1,
+                            kills = kills + ?, deaths = deaths + ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE name = ?
+                    """, (player1_kills, player2_kills, player1_name))
+                else:
+                    # 平局（超时）
+                    cursor.execute("""
+                        UPDATE players
+                        SET kills = kills + ?, deaths = deaths + ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE name = ?
+                    """, (player1_kills, player2_kills, player1_name))
+
+                    cursor.execute("""
+                        UPDATE players
+                        SET kills = kills + ?, deaths = deaths + ?,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE name = ?
+                    """, (player2_kills, player1_kills, player2_name))
+        except sqlite3.IntegrityError as e:
+            # 插入对战中违反外键约束（玩家不存在），记录但不抛
+            import logging
+            logging.getLogger(__name__).warning(
+                "更新比赛结果失败（玩家可能不存在）: %s | p1=%s p2=%s w=%s",
+                e, player1_name, player2_name, winner_name,
+            )
+            return False
+        except sqlite3.OperationalError as e:
+            # SQLite 锁等待超时
+            import logging
+            logging.getLogger(__name__).error("数据库操作失败: %s", e)
+            return False
+        return True
     
     def get_match_history(self, player_name: Optional[str] = None, limit: int = 50) -> List[Dict]:
         """获取对战历史"""

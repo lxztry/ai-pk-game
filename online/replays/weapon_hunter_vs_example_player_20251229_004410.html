@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN" data-page-node-id="05HwdTaHihudmEXVOrBbjI">
+<head data-page-node-id="4ukGdSTva6IPRJyhsIfRms">
+    <meta charset="UTF-8" data-page-node-id="UQgrzNz4wQli0JAtb5PUDS">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="O6YsmZsEDRaPKEExfRfqdQ">
     <title>AI竞技平台 - 游戏回放</title>
     <style>
         body {
@@ -118,28 +118,28 @@
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🏟️ AI竞技平台 - 游戏回放（增强版）</h1>
-        <div class="canvas-wrapper">
-            <canvas id="gameCanvas" width="800" height="600"></canvas>
-            <canvas id="minimap" width="150" height="150" style="display: none;"></canvas>
-            <button class="toggle-btn" onclick="toggleMinimap()">小地图</button>
+<body data-page-node-id="jPnFrIAlwH0mjUpDrXCQ3b">
+    <div class="container" data-page-node-id="jxjJaaUMKvhElB3X53FApA">
+        <h1 data-page-node-id="58LFT414jdEb6nd01mmPHp">🏟️ AI竞技平台 - 游戏回放（增强版）</h1>
+        <div class="canvas-wrapper" data-page-node-id="fOpydkYYEDjvonEPVsNziQ">
+            <canvas id="gameCanvas" width="800" height="600" data-page-node-id="hNZvWWniMGV4NyBOyWNqj1"></canvas>
+            <canvas id="minimap" width="150" height="150" style="display: none;" data-page-node-id="m1ptNuTMOTTE0LRZtjYqiW"></canvas>
+            <button class="toggle-btn" onclick="toggleMinimap()" data-page-node-id="OzJLWGaU6UgSmVmKZOTcxu">小地图</button>
         </div>
-        <div class="controls">
-            <button onclick="togglePlay()">播放/暂停</button>
-            <button onclick="reset()">重置</button>
-            <button onclick="speedUp()">加速</button>
-            <button onclick="speedDown()">减速</button>
-            <button onclick="toggleTrails()">轨迹: <span id="trailStatus">关闭</span></button>
-            <span style="margin-left: 20px;">速度: <span id="speedDisplay">15</span> FPS</span>
-            <div style="margin-top:10px;">
-                <input id="timeline" type="range" min="0" value="0" step="1" style="width: 600px;" />
-                <span id="frameLabel">0</span>/<span id="frameTotal">0</span>
+        <div class="controls" data-page-node-id="qmoBuX2oSTFHJFd9h3gNYo">
+            <button onclick="togglePlay()" data-page-node-id="dA44ZDtGcE5OmjgGWcQqjj">播放/暂停</button>
+            <button onclick="reset()" data-page-node-id="99V7K8qONNhwgBfmPeyi7F">重置</button>
+            <button onclick="speedUp()" data-page-node-id="kobjUH6aAIOAZboRGbKihi">加速</button>
+            <button onclick="speedDown()" data-page-node-id="MjZ58nwFQVPQ4BTYAQKXTo">减速</button>
+            <button onclick="toggleTrails()" data-page-node-id="z7m1PKQPjLgik2NtMzd7b7">轨迹: <span id="trailStatus" data-page-node-id="puCEc37Z2kfAuK1HEaZD4n">关闭</span></button>
+            <span style="margin-left: 20px;" data-page-node-id="Z73PiFBQH1FHKOOS0uqrGw">速度: <span id="speedDisplay" data-page-node-id="4lPHzk3lbKb20ghxdA24A4">15</span> FPS</span>
+            <div style="margin-top:10px;" data-page-node-id="CWtgu3NYjYfNJ1CHLlD7bP">
+                <input id="timeline" type="range" min="0" value="0" step="1" style="width: 600px;" data-page-node-id="JX4KLynV9nXhILWzfN0MyP" />
+                <span id="frameLabel" data-page-node-id="fMkzALMneFnloNWb1xQ8LG">0</span>/<span id="frameTotal" data-page-node-id="cTdkRwvagqppFtNt9ls7oI">0</span>
             </div>
         </div>
-        <div class="info-panel" id="infoPanel"></div>
-        <div id="legend" class="info-panel" style="margin-top:10px;"></div>
+        <div class="info-panel" id="infoPanel" data-page-node-id="g2Y2uRisOEx6KReppPEV84"></div>
+        <div id="legend" class="info-panel" style="margin-top:10px;" data-page-node-id="ixpCh0ZAP4a9GoIufDsMTk"></div>
     </div>
 
     <script>

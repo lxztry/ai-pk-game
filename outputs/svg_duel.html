@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="n6SigWDicJtwqTQ3Q21CKp"><head data-page-node-id="1IG0WmZf8SRidgo2Ew5Ebp">
+<meta charset="UTF-8" data-page-node-id="5UeLoW3cQkg9MqoptbAHyy">
+<title>SVG 对决 v4 (墙碰撞+闪避+慢动作)</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Microsoft YaHei',Arial,sans-serif;
+  background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+  color:white; min-height:100vh; padding:20px;
+  display:flex; flex-direction:column; align-items:center;
+}
+.container { background:rgba(255,255,255,0.05); border-radius:16px;
+  padding:20px; backdrop-filter:blur(10px); }
+h1 { text-align:center; margin-bottom:12px;
+  text-shadow:2px 2px 4px rgba(0,0,0,0.5); }
+#stage { width:600px; height:600px;
+  border:3px solid rgba(255,255,255,0.2); border-radius:12px;
+  background:#1e293b; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+.controls { margin-top:16px; text-align:center; }
+button {
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3);
+  color:white; padding:8px 16px; border-radius:6px;
+  margin:3px; cursor:pointer; font-size:14px;
+}
+button:hover { background:rgba(255,255,255,0.3); }
+.info { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.card { background:rgba(255,255,255,0.08); padding:10px 14px; border-radius:8px; }
+.hp { background:rgba(0,0,0,0.4); height:12px; border-radius:6px; overflow:hidden; margin-top:4px; }
+.hpfill { height:100%; background:linear-gradient(90deg,#22c55e,#16a34a); }
+</style>
+</head>
+<body data-page-node-id="leXd3Sgv1NAt9G9ZNCo0Nt">
+<div class="container" data-page-node-id="rdkoeAbhIttwHhls7ZoANU">
+<h1 data-page-node-id="dCeQIZ2ZKf5vwCiFY7Bjpq">🏟️ SVG 对决 v4 (墙碰撞+闪避+慢动作)</h1>
+<div id="stage" data-page-node-id="q2PEmGRKbWImea9Z6Bym43"></div>
+<div class="controls" data-page-node-id="8CeAgSbADjw5Gp23Cv0kqg">
+<button onclick="togglePlay()" data-page-node-id="nsOPZxIuZ6piJutAbfHbVX">⏯ 播放/暂停</button>
+<button onclick="reset()" data-page-node-id="dTHsVCI3UlEp9yj4jxpGKr">🔄 重置</button>
+<button onclick="speedUp()" data-page-node-id="RAZD63W4j2m0MxFA3x77GO">⏩ 加速</button>
+<button onclick="speedDown()" data-page-node-id="udgZImgW6xVHPFkhmPsesO">⏪ 减速</button>
+<button onclick="toggleSound()" data-page-node-id="9CqEvZ8ZQndbExbyqfWfLo">🔊 音效: <span id="soundStatus" data-page-node-id="0huysdcTuC51eGanjBvNc3">关</span></button>
+<span style="margin-left:12px;" data-page-node-id="J2H63abM797DljHNhyVB7A">速度: <span id="speedDisplay" data-page-node-id="OqzBK63gIAKjIzYXXfZwZS">6</span> FPS</span>
+<div style="margin-top:8px;" data-page-node-id="otuzra8iUJYSVY3CuLXyba">
+<input id="timeline" type="range" min="0" value="0" step="1" style="width:600px;" data-page-node-id="tFnZX187aMP9YKjga5GN18" />
+<span id="frameLabel" data-page-node-id="EcB3BsFi0wxb0IDa8q6XEo">0</span>/<span id="frameTotal" data-page-node-id="3QoqMLgP2w5v1BBHV9iCbv">0</span>
+</div>
+</div>
+<div class="info" id="info" data-page-node-id="ecGV26Bf1mwHcGg3r1Jk3D"></div>
+</div>
+<svg width="0" height="0" style="position:absolute" data-page-node-id="rH4qwSSGnBcI6v6J54RqnV">
+<defs data-page-node-id="2m9e5Lqzi4NCGoBHQVtPdt">
+<symbol id="obstacle_brick" viewBox="0 0 32 32" data-page-node-id="En0N41i0PuDAR0xeBXzRum">
+<rect x="1" y="1" width="30" height="30" fill="#92400e" stroke="#000" stroke-width="1.5" data-page-node-id="o4mxFQOHXk7QfLwmzYjkxY"/>
+<rect x="1" y="1" width="30" height="10" fill="rgba(0,0,0,0.3)" data-page-node-id="WWRecAb9bR2WgWmZUdYpRl"/>
+<line x1="0" y1="11" x2="32" y2="11" stroke="#000" stroke-width="0.5" stroke-dasharray="3,2" data-page-node-id="JLH7ZdWA0l0QZsCGAt8Kc0"/>
+<line x1="11" y1="0" x2="11" y2="11" stroke="#000" stroke-width="0.5" data-page-node-id="PPCYyy2JU0xCtWDD6mbDJd"/>
+<line x1="21" y1="11" x2="21" y2="32" stroke="#000" stroke-width="0.5" data-page-node-id="KKEQmErwSsydUwuUNBAThp"/>
+<text x="16" y="22" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="middle" data-page-node-id="DSvJdTAgvk4ENFxercuxcM">墙</text>
+</symbol>
+<symbol id="supply_health" viewBox="0 0 24 24" data-page-node-id="3dz1FBWHXVOHS87Ftp5sHc">
+<path d="M 12 21 C 4 14 2 12 5 9 C 8 6 11 7 12 10 C 13 7 16 6 19 9 C 22 12 20 14 12 21 Z"
+  fill="#ef4444" stroke="#000" stroke-width="1.5" data-page-node-id="uJIrfRAW6Hj1eIbD3vLPRS"/>
+<text x="12" y="14" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="oRvTY1fAySdm6FagU7C0dy">+</text>
+</symbol>
+<symbol id="supply_ammo" viewBox="0 0 24 24" data-page-node-id="Ff1vm3gSRK5pVHVos0eS9Q">
+<rect x="3" y="6" width="18" height="14" fill="#3b82f6" stroke="#000" stroke-width="1.5" data-page-node-id="BFG8izGg73DbmymuXriBS9"/>
+<text x="12" y="17" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="zbqmO9OH5hDE8Mnz3pFEDf">A</text>
+</symbol>
+<symbol id="supply_weapon_sg" viewBox="0 0 24 24" data-page-node-id="5tH4e7i3XlsKl2e8qYN80n">
+<rect x="3" y="6" width="18" height="14" fill="#f97316" stroke="#000" stroke-width="1.5" rx="2" data-page-node-id="33UASUMEB8vYyuUXZdfVlZ"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="g16soThC6LQAIrMogbVKOJ">SG</text>
+</symbol>
+<symbol id="supply_weapon_sr" viewBox="0 0 24 24" data-page-node-id="SS3Jn1iFqVdm2oyh8Sp0bA">
+<rect x="3" y="6" width="18" height="14" fill="#a855f7" stroke="#000" stroke-width="1.5" rx="2" data-page-node-id="gh8IPEnWeTCgeZdqdtGfnn"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="4FI0IID7ClW9nlwSwJH9V9">SR</text>
+</symbol>
+<symbol id="supply_weapon_rl" viewBox="0 0 24 24" data-page-node-id="l4LHVk2xQ7drs4Y7VOK1Pg">
+<rect x="3" y="6" width="18" height="14" fill="#dc2626" stroke="#000" stroke-width="1.5" rx="2" data-page-node-id="PB5vN8ABtgAkOkIvmE7uch"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold" data-page-node-id="qZEubLOCzOnBwvwgtjHYHS">RL</text>
+</symbol>
+<symbol id="bullet_normal" viewBox="0 0 14 14" data-page-node-id="3DqVrscSbqX0BqTyDrVGfj">
+<circle cx="7" cy="7" r="5" fill="#fbbf24" stroke="#000" stroke-width="1" data-page-node-id="0AkEQTi9O7RB7ZfCnFpTqK"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6" data-page-node-id="86swASQxQXyvTRhAd4fvgJ"/>
+</symbol>
+<symbol id="bullet_shotgun" viewBox="0 0 14 14" data-page-node-id="rpBDoXvWuDlMTyV0QdqjIi">
+<circle cx="7" cy="7" r="5" fill="#f97316" stroke="#000" stroke-width="1" data-page-node-id="uBQUG0DxnOHYCe75tcQWrM"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6" data-page-node-id="YKrqgFxDfgxxzY9m4hZXwW"/>
+</symbol>
+<symbol id="bullet_sniper" viewBox="0 0 14 14" data-page-node-id="CIN12qY38688zvGSayD0iI">
+<circle cx="7" cy="7" r="5" fill="#a855f7" stroke="#000" stroke-width="1" data-page-node-id="NESYrHNFifvnSjk7GzOOx6"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6" data-page-node-id="h1RLquDDrgzw0Vkf76AYeZ"/>
+</symbol>
+<symbol id="bullet_rocket" viewBox="0 0 14 14" data-page-node-id="IxUd01tZyfpGGbIcBxusuL">
+<circle cx="7" cy="7" r="6" fill="#dc2626" stroke="#000" stroke-width="1" data-page-node-id="AhlAzsmIwhuJ2ZnUYSEVlw"/>
+<path d="M 7 1 L 5 4 L 9 4 Z" fill="#fef3c7" data-page-node-id="9hokkBP4tUVocjZ8qGNWHg"/>
+</symbol>
+</defs>
+</svg>
+<script>
+const states = [{"turn": 3, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [13.142508527502564, 13.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 40, "position": [7.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [7.995516093133418, 10.515409334264195], "direction": [0.5028726725314856, 0.8643605007293202], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [6.977739078225611, 10.978393335848137], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [5.888269120455941, 11.229947403425426], "direction": [0.1265785702676506, 0.9919565845081112], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [7.179429126957098, 5.674990530180002], "intensity": 1.0}]}, {"turn": 0, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [15.142508527502564, 17.73726239113247], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 35, "position": [5.179429126957098, 5.674990530180002], "direction": [-0.1954141609209247, 0.9807208092579514], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [13.090631910377606, 15.832058373685562], "direction": [-0.7328130775446273, -0.6804300062310392], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [13.510038440378684, 15.462390655265644], "direction": [-0.5830250311156713, -0.8124541913810098], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [13.994526401196131, 15.183414894181848], "direction": [-0.40999361653801153, -0.9120883917680797], "owner": "\u6fc0\u8fdb\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 1, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [15.142508527502564, 15.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 30, "position": [5.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [11.038755293252649, 13.926854356238653], "direction": [-0.7328130775446273, -0.6804300062310392], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [11.877568353254805, 13.187518919398816], "direction": [-0.5830250311156713, -0.8124541913810098], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [12.846544274889698, 12.629567397231224], "direction": [-0.40999361653801153, -0.9120883917680797], "owner": "\u6fc0\u8fdb\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 2, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 100, "position": [15.142508527502564, 13.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 25, "position": [5.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [8.986878676127692, 12.021650338791744], "direction": [-0.7328130775446273, -0.6804300062310392], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [10.245098266130926, 10.912647183531988], "direction": [-0.5830250311156713, -0.8124541913810098], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [11.698562148583266, 10.0757199002806], "direction": [-0.40999361653801153, -0.9120883917680797], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [6.587472610045258, 8.095199932222098], "direction": [0.5028726725314856, 0.8643605007293202], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [6.078584102591354, 8.32669193301407], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [5.53384912370652, 8.452468966802714], "direction": [0.1265785702676506, 0.9919565845081112], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 4, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [13.142508527502564, 11.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 20, "position": [5.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [7.876894053859867, 13.630094738682205], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [6.242689117205363, 14.007425840048137], "direction": [0.1265785702676506, 0.9919565845081112], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [13.142508527502564, 11.737262391132472], "intensity": 1.0}]}, {"turn": 5, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [11.142508527502564, 11.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 15, "position": [3.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [8.776049029494123, 16.28179614151627], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [6.597109113954785, 16.784904276670847], "direction": [0.1265785702676506, 0.9919565845081112], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 6, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [11.142508527502564, 11.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 10, "position": [5.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [9.675204005128379, 18.933497544350338], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [6.9515291107042065, 19.56238271329356], "direction": [0.1265785702676506, 0.9919565845081112], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [9.090631910377606, 9.832058373685562], "direction": [-0.7328130775446273, -0.6804300062310392], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [9.510038440378684, 9.462390655265644], "direction": [-0.5830250311156713, -0.8124541913810098], "owner": "\u6fc0\u8fdb\u6d3e"}, {"kind": "shotgun", "position": [9.994526401196131, 9.183414894181848], "direction": [-0.40999361653801153, -0.9120883917680797], "owner": "\u6fc0\u8fdb\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 7, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [11.142508527502564, 9.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 5, "position": [7.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [10.574358980762636, 21.585198947184406], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}, {"kind": "shotgun", "position": [7.305949107453628, 22.33986114991627], "direction": [0.1265785702676506, 0.9919565845081112], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [7.179429126957098, 5.674990530180002], "intensity": 1.0}]}, {"turn": 8, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [11.142508527502564, 7.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 52, "position": [5.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [{"kind": "shotgun", "position": [11.473513956396893, 24.236900350018473], "direction": [0.3211267770122344, 0.9470362152978812], "owner": "\u9632\u5b88\u6d3e"}], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 9, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [9.142508527502564, 7.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 52, "position": [3.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 10, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [7.142508527502564, 7.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 52, "position": [1.179429126957098, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 11, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [5.142508527502564, 7.737262391132472], "direction": [-0.5830250311156714, -0.8124541913810097], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 52, "position": [0, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 12, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [5.142508527502564, 7.737262391132472], "direction": [-0.911141583678889, -0.4120934535892632], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 52, "position": [0, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 13, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [5.142508527502564, 7.737262391132472], "direction": [-0.911141583678889, -0.4120934535892632], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 28, "position": [0, 5.674990530180002], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [0, 5.674990530180002], "intensity": 1.0}]}, {"turn": 14, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [3.661373845654513, 8.077767861804752], "direction": [-0.911141583678889, -0.4120934535892632], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 28, "position": [0, 5.334485059507722], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 15, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [1.6613738456545128, 8.077767861804752], "direction": [-0.911141583678889, -0.4120934535892632], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 28, "position": [0, 3.3344850595077222], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 16, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [1.6613738456545128, 8.077767861804752], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 28, "position": [0, 1.3344850595077222], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 17, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [1.6613738456545128, 6.077767861804752], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 28, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 18, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [1.7739588509205801, 4.354102726107508], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 28, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 19, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [1.8302513535536138, 4.4922701582588855], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [0, 0], "intensity": 1.0}]}, {"turn": 20, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [2.3948944211979146, 3.2611498341707996], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 21, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [3.4094841983214703, 1.795432146512041], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 22, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [2.248474762847266, 2.8641568842308356], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 23, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [3.457824257940524, 1.3289464868957748], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 24, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [2.5764570879348714, 2.3486874889061253], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": 12, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": []}, {"turn": 25, "agents": [{"name": "\u6fc0\u8fdb\u6d3e", "health": 92, "position": [2.5764570879348714, 2.3486874889061253], "direction": [-0.5830250311156713, -0.8124541913810098], "kills": 1, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 30, "sniper": 0, "rocket": 2}}, {"name": "\u9632\u5b88\u6d3e", "health": -4, "position": [0, 0], "direction": [0.3211267770122344, 0.9470362152978812], "kills": 0, "team_id": null, "weapon": "shotgun", "ammo": {"shotgun": 29, "sniper": 0, "rocket": 0}}], "bullets": [], "obstacles": [{"rect": [12, 10, 4, 3]}, {"rect": [5, 18, 3, 3]}, {"rect": [18, 5, 3, 3]}], "supplies": [{"position": [18, 14], "type": "health"}, {"position": [4, 4], "type": "ammo_shotgun"}], "explosions": [{"position": [0, 0], "intensity": 1.0}]}];
+const canvasW = 600, canvasH = 600;
+const mapW = 25, mapH = 25;
+const agentColors = {};
+
+// 分配颜色
+const colorList = ["#a855f7","#ec4899","#22d3ee","#facc15","#84cc16","#fb923c"];
+states.forEach(f => {
+  f.agents.forEach((a, i) => {
+    if (!agentColors[a.name]) agentColors[a.name] = colorList[Object.keys(agentColors).length % colorList.length];
+  });
+});
+
+let currentFrame = 0, isPlaying = true, fps = 6;
+let lastTime = 0;
+
+const stage = document.getElementById('stage');
+const timeline = document.getElementById('timeline');
+const frameLabel = document.getElementById('frameLabel');
+const frameTotal = document.getElementById('frameTotal');
+const info = document.getElementById('info');
+
+frameTotal.textContent = states.length - 1;
+timeline.max = states.length - 1;
+
+function renderFrame(frameIdx) {
+  if (frameIdx >= states.length) return;
+  const f = states[frameIdx];
+  const currentFrame = frameIdx;  // 给角色动画用
+  // 统一缩放（地图不形变）+ 居中留白
+  const scale = Math.min(canvasW / mapW, canvasH / mapH);
+  const contentW = mapW * scale;
+  const contentH = mapH * scale;
+  const offsetX = (canvasW - contentW) / 2;
+  const offsetY = (canvasH - contentH) / 2;
+  const scaleX = scale, scaleY = scale;
+
+  let svg = `<svg width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect width="${canvasW}" height="${canvasH}" fill="#1e293b"/>`;
+  svg += `<rect width="${canvasW}" height="${canvasH}" fill="#334155" opacity="0.3"/>`;
+
+  // 网格（用统一 scale 避免形变）
+  for (let x = 0; x <= mapW; x += 10) {
+    const px = offsetX + x*scale;
+    svg += `<line x1="${px}" y1="${offsetY}" x2="${px}" y2="${offsetY+contentH}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+  }
+  for (let y = 0; y <= mapH; y += 10) {
+    const py = offsetY + y*scale;
+    svg += `<line x1="${offsetX}" y1="${py}" x2="${offsetX+contentW}" y2="${py}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+  }
+
+  // 障碍物
+  (f.obstacles || []).forEach(obs => {
+    const [rx, ry, rw, rh] = obs.rect;
+    const x = offsetX + rx * scaleX, y = offsetY + ry * scaleY, w = rw * scaleX, h = rh * scaleY;
+    svg += `<g transform="translate(${x},${y})">`;
+    svg += `<svg width="${w}" height="${h}" viewBox="0 0 32 32">`;
+    svg += `<use href="#obstacle_brick" width="32" height="32"/>`;  // 关键：width/height
+    svg += `</svg></g>`;
+  });
+
+  // 补给
+  (f.supplies || []).forEach(s => {
+    const sx = offsetX + s.position[0] * scaleX - 8;
+    const sy = offsetY + s.position[1] * scaleY - 8;
+    let kind = s.type;
+    let svgId = 'supply_health';
+    if (kind.includes('weapon_shotgun')) svgId = 'supply_weapon_sg';
+    else if (kind.includes('weapon_sniper')) svgId = 'supply_weapon_sr';
+    else if (kind.includes('weapon_rocket')) svgId = 'supply_weapon_rl';
+    else if (kind.startsWith('ammo')) svgId = 'supply_ammo';
+    // 关键：必须加 width/height，否则浏览器拉伸填满父容器
+    svg += `<use href="#${svgId}" x="${sx-2}" y="${sy-2}" width="20" height="20"/>`;
+  });
+
+  // 子弹
+  (f.bullets || []).forEach(b => {
+    const bx = offsetX + b.position[0] * scaleX;
+    const by = offsetY + b.position[1] * scaleY;
+    const [dx, dy] = b.direction || [1, 0];
+    const tx = bx - dx * 8, ty = by - dy * 8;
+    // 尾迹
+    svg += `<line x1="${tx}" y1="${ty}" x2="${bx}" y2="${by}" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>`;
+    // 关键：必须加 width/height
+    svg += `<use href="#bullet_${b.kind || 'normal'}" x="${bx-5}" y="${by-5}" width="10" height="10"/>`;
+  });
+
+  // 爆炸 / 受击效果（缩小到合理范围）
+  (f.explosions || []).forEach(e => {
+    const ex = offsetX + e.position[0] * scaleX;
+    const ey = offsetY + e.position[1] * scaleY;
+    const r = 10;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r}" fill="#fbbf24" opacity="0.7"/>`;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r*0.6}" fill="#f97316" opacity="0.9"/>`;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r*0.3}" fill="#fef3c7"/>`;
+    // 放射线
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI * 2 * i) / 6;
+      const x1 = ex + Math.cos(a) * r * 0.5;
+      const y1 = ey + Math.sin(a) * r * 0.5;
+      const x2 = ex + Math.cos(a) * r * 1.3;
+      const y2 = ey + Math.sin(a) * r * 1.3;
+      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>`;
+    }
+    // 受击感叹号（8px）
+    svg += `<text x="${ex}" y="${ey+3}" font-size="9" text-anchor="middle" fill="#000" font-weight="bold">!</text>`;
+  });
+
+  // Agent
+  f.agents.forEach(a => {
+    const ax = offsetX + a.position[0] * scaleX;
+    const ay = offsetY + a.position[1] * scaleY;
+    const [dx, dy] = a.direction || [1, 0];
+    const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    const color = agentColors[a.name] || '#3b82f6';
+    const weapon = a.weapon || 'normal';
+    const hp = Math.max(0, a.health) / 100;
+    const face = hp > 0.5 ? 'happy' : (hp > 0.25 ? 'angry' : 'scared');
+    const cx = 18, cy = 18, r = 12;
+    const pupilOff = (deg > 90 || deg < -90) ? -2 : 2;
+    const hpColor = hp > 0.5 ? '#22c55e' : (hp > 0.25 ? '#eab308' : '#ef4444');
+    const weaponColor = {normal:'#888',shotgun:'#f97316',sniper:'#a855f7',rocket:'#dc2626'}[weapon];
+
+    svg += `<g transform="translate(${ax-12},${ay-12})">`;
+    svg += `<ellipse cx="12" cy="22" ry="2" rx="8" fill="rgba(0,0,0,0.4)"/>`;
+
+    // 死亡：渲染骷髅
+    if (a.health <= 0) {
+      svg += `<circle cx="12" cy="11" r="8" fill="#fff" stroke="#000" stroke-width="2"/>`;
+      svg += `<path d="M 5 8 Q 12 4 19 8" stroke="#000" stroke-width="1" fill="none"/>`;
+      svg += `<circle cx="9" cy="10" r="3" fill="#000"/>`;
+      svg += `<circle cx="15" cy="10" r="3" fill="#000"/>`;
+      svg += `<polygon points="12,11 10,14 14,14" fill="#000"/>`;
+      svg += `<line x1="8.5" y1="15" x2="8.5" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="11" y1="15" x2="11" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="13" y1="15" x2="13" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="15.5" y1="15" x2="15.5" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<text x="12" y="9" font-size="8" text-anchor="middle" fill="#dc2626" font-weight="bold">✕</text>`;
+      svg += `</g>`;
+      return;
+    }
+
+    // 走动动画：交替脚位置
+    const walking = Math.abs(dx) + Math.abs(dy) > 0.01;
+    const legPhase = walking ? Math.floor(currentFrame / 4) % 2 : 0;
+    const legY = legPhase ? 21 : 22;
+    const legOff = legPhase ? 0.8 : -0.8;
+    svg += `<ellipse cx="${9+legOff}" cy="${legY}" rx="2" ry="1.2" fill="#333"/>`;
+    svg += `<ellipse cx="${15-legOff}" cy="${legY}" rx="2" ry="1.2" fill="#333"/>`;
+
+    svg += `<circle cx="12" cy="12" r="8" fill="${color}" stroke="#000" stroke-width="1.5"/>`;
+    svg += `<circle cx="9" cy="9" r="2.5" fill="rgba(255,255,255,0.4)"/>`;
+    // 表情：scared / angry / happy 三种
+    if (face === 'scared') {
+      // X 眼
+      svg += `<line x1="7" y1="8" x2="11" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="11" y1="8" x2="7" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="13" y1="8" x2="17" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="17" y1="8" x2="13" y2="12" stroke="#000" stroke-width="1"/>`;
+      // O 嘴
+      svg += `<ellipse cx="12" cy="16" rx="2" ry="2.5" fill="#000"/>`;
+    } else if (face === 'angry') {
+      // V 眉
+      svg += `<line x1="6" y1="9" x2="10" y2="11" stroke="#000" stroke-width="1.2"/>`;
+      svg += `<line x1="18" y1="9" x2="14" y2="11" stroke="#000" stroke-width="1.2"/>`;
+      svg += `<circle cx="9" cy="10" r="1.2" fill="#000"/>`;
+      svg += `<circle cx="15" cy="10" r="1.2" fill="#000"/>`;
+      // 直线嘴
+      svg += `<line x1="9" y1="16" x2="15" y2="16" stroke="#000" stroke-width="1.2"/>`;
+    } else {
+      // happy
+      svg += `<circle cx="9" cy="10" r="1.5" fill="#fff"/>`;
+      svg += `<circle cx="15" cy="10" r="1.5" fill="#fff"/>`;
+      svg += `<circle cx="${9+pupilOff}" cy="10" r="0.8" fill="#000"/>`;
+      svg += `<circle cx="${15+pupilOff}" cy="10" r="0.8" fill="#000"/>`;
+      // 微笑
+      svg += `<path d="M 9 15 Q 12 17 15 15" stroke="#000" stroke-width="1" fill="none"/>`;
+    }
+    // 武器（朝朝向）
+    svg += `<g transform="rotate(${deg} 12 12)"><rect x="18" y="10.5" width="4" height="3" fill="${weaponColor}" stroke="#000" stroke-width="0.4"/></g>`;
+    // 血量环
+    const circ = 2 * Math.PI * 11;
+    svg += `<circle cx="12" cy="12" r="11" fill="none" stroke="#333" stroke-width="1.5"/>`;
+    svg += `<circle cx="12" cy="12" r="11" fill="none" stroke="${hpColor}" stroke-width="1.5" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-hp)}" transform="rotate(-90 12 12)"/>`;
+    svg += `</g>`;
+  });
+
+  svg += `</svg>`;
+  stage.innerHTML = svg;
+
+  // 信息面板
+  let infoHtml = '';
+  f.agents.forEach(a => {
+    const color = agentColors[a.name] || '#3b82f6';
+    const hp = Math.max(0, a.health);
+    infoHtml += `<div class="card" style="border-left:4px solid ${color}">
+      <b>${a.name}</b> · 血 ${hp}/100 · 击杀 ${a.kills || 0}
+      <div class="hp"><div class="hpfill" style="width:${hp}%"></div></div>
+      ${a.weapon && a.weapon !== 'normal' ? '<small>武器:' + a.weapon + '</small>' : ''}
+    </div>`;
+  });
+  info.innerHTML = infoHtml;
+
+  timeline.value = frameIdx;
+  frameLabel.textContent = frameIdx;
+}
+
+function gameLoop(t) {
+  if (isPlaying && t - lastTime > 1000/fps) {
+    currentFrame = (currentFrame + 1) % states.length;
+    renderFrame(currentFrame);
+    lastTime = t;
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+function togglePlay() { isPlaying = !isPlaying; }
+function reset() { currentFrame = 0; renderFrame(0); isPlaying = true; lastTime = 0; }
+function speedUp() { fps = Math.min(fps + 5, 60); document.getElementById('speedDisplay').textContent = fps; }
+function speedDown() { fps = Math.max(fps - 5, 5); document.getElementById('speedDisplay').textContent = fps; }
+
+// ====== Web Audio 8-bit 音效 ======
+let audioCtx = null;
+let soundEnabled = false;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundStatus').textContent = soundEnabled ? '开' : '关';
+  if (soundEnabled) { ensureAudio(); audioCtx.resume(); playSound('pickup'); }
+}
+function playSound(kind) {
+  if (!soundEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (kind === 'shoot') {
+    // 短促方波（800Hz）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.08);
+  } else if (kind === 'explode') {
+    // 低频 + 噪声（爆炸）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } else if (kind === 'pickup') {
+    // 上升音（拾取）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+}
+// 监听帧变化触发音效
+let lastFrameIdx = -1;
+let lastBulletCount = 0;
+let lastExplosionCount = 0;
+const origRenderFrame = renderFrame;
+renderFrame = function(frameIdx) {
+  origRenderFrame(frameIdx);
+  if (frameIdx !== lastFrameIdx && soundEnabled) {
+    const cur = states[frameIdx];
+    if (cur) {
+      const bc = cur.bullets ? cur.bullets.length : 0;
+      const ec = cur.explosions ? cur.explosions.length : 0;
+      if (bc > lastBulletCount) playSound('shoot');
+      if (ec > lastExplosionCount) playSound('explode');
+      lastBulletCount = bc;
+      lastExplosionCount = ec;
+    }
+  }
+  lastFrameIdx = frameIdx;
+};
+timeline.oninput = () => { currentFrame = parseInt(timeline.value); renderFrame(currentFrame); };
+
+renderFrame(0);
+requestAnimationFrame(gameLoop);
+</script>
+</body></html>

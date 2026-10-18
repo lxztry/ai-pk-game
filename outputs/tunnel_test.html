@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<title>穿墙测试</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Microsoft YaHei',Arial,sans-serif;
+  background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+  color:white; min-height:100vh; padding:20px;
+  display:flex; flex-direction:column; align-items:center;
+}
+.container { background:rgba(255,255,255,0.05); border-radius:16px;
+  padding:20px; backdrop-filter:blur(10px); }
+h1 { text-align:center; margin-bottom:12px;
+  text-shadow:2px 2px 4px rgba(0,0,0,0.5); }
+#stage { width:600px; height:600px;
+  border:3px solid rgba(255,255,255,0.2); border-radius:12px;
+  background:#1e293b; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+.controls { margin-top:16px; text-align:center; }
+button {
+  background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3);
+  color:white; padding:8px 16px; border-radius:6px;
+  margin:3px; cursor:pointer; font-size:14px;
+}
+button:hover { background:rgba(255,255,255,0.3); }
+.info { margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.card { background:rgba(255,255,255,0.08); padding:10px 14px; border-radius:8px; }
+.hp { background:rgba(0,0,0,0.4); height:12px; border-radius:6px; overflow:hidden; margin-top:4px; }
+.hpfill { height:100%; background:linear-gradient(90deg,#22c55e,#16a34a); }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🏟️ 穿墙测试</h1>
+<div id="stage"></div>
+<div class="controls">
+<button onclick="togglePlay()">⏯ 播放/暂停</button>
+<button onclick="reset()">🔄 重置</button>
+<button onclick="speedUp()">⏩ 加速</button>
+<button onclick="speedDown()">⏪ 减速</button>
+<button onclick="toggleSound()">🔊 音效: <span id="soundStatus">关</span></button>
+<span style="margin-left:12px;">速度: <span id="speedDisplay">4</span> FPS</span>
+<div style="margin-top:8px;">
+<input id="timeline" type="range" min="0" value="0" step="1" style="width:600px;" />
+<span id="frameLabel">0</span>/<span id="frameTotal">0</span>
+</div>
+</div>
+<div class="info" id="info"></div>
+</div>
+<svg width="0" height="0" style="position:absolute">
+<defs>
+<symbol id="obstacle_brick" viewBox="0 0 32 32">
+<rect x="1" y="1" width="30" height="30" fill="#92400e" stroke="#000" stroke-width="1.5"/>
+<rect x="1" y="1" width="30" height="10" fill="rgba(0,0,0,0.3)"/>
+<line x1="0" y1="11" x2="32" y2="11" stroke="#000" stroke-width="0.5" stroke-dasharray="3,2"/>
+<line x1="11" y1="0" x2="11" y2="11" stroke="#000" stroke-width="0.5"/>
+<line x1="21" y1="11" x2="21" y2="32" stroke="#000" stroke-width="0.5"/>
+<text x="16" y="22" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="middle">墙</text>
+</symbol>
+<symbol id="supply_health" viewBox="0 0 24 24">
+<path d="M 12 21 C 4 14 2 12 5 9 C 8 6 11 7 12 10 C 13 7 16 6 19 9 C 22 12 20 14 12 21 Z"
+  fill="#ef4444" stroke="#000" stroke-width="1.5"/>
+<text x="12" y="14" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold">+</text>
+</symbol>
+<symbol id="supply_ammo" viewBox="0 0 24 24">
+<rect x="3" y="6" width="18" height="14" fill="#3b82f6" stroke="#000" stroke-width="1.5"/>
+<text x="12" y="17" font-size="9" text-anchor="middle" fill="#fff" font-weight="bold">A</text>
+</symbol>
+<symbol id="supply_weapon_sg" viewBox="0 0 24 24">
+<rect x="3" y="6" width="18" height="14" fill="#f97316" stroke="#000" stroke-width="1.5" rx="2"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold">SG</text>
+</symbol>
+<symbol id="supply_weapon_sr" viewBox="0 0 24 24">
+<rect x="3" y="6" width="18" height="14" fill="#a855f7" stroke="#000" stroke-width="1.5" rx="2"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold">SR</text>
+</symbol>
+<symbol id="supply_weapon_rl" viewBox="0 0 24 24">
+<rect x="3" y="6" width="18" height="14" fill="#dc2626" stroke="#000" stroke-width="1.5" rx="2"/>
+<text x="12" y="17" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold">RL</text>
+</symbol>
+<symbol id="bullet_normal" viewBox="0 0 14 14">
+<circle cx="7" cy="7" r="5" fill="#fbbf24" stroke="#000" stroke-width="1"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6"/>
+</symbol>
+<symbol id="bullet_shotgun" viewBox="0 0 14 14">
+<circle cx="7" cy="7" r="5" fill="#f97316" stroke="#000" stroke-width="1"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6"/>
+</symbol>
+<symbol id="bullet_sniper" viewBox="0 0 14 14">
+<circle cx="7" cy="7" r="5" fill="#a855f7" stroke="#000" stroke-width="1"/>
+<circle cx="5" cy="5" r="2" fill="#fff" opacity="0.6"/>
+</symbol>
+<symbol id="bullet_rocket" viewBox="0 0 14 14">
+<circle cx="7" cy="7" r="6" fill="#dc2626" stroke="#000" stroke-width="1"/>
+<path d="M 7 1 L 5 4 L 9 4 Z" fill="#fef3c7"/>
+</symbol>
+</defs>
+</svg>
+<script>
+const states = [{"turn": 0, "agents": [{"name": "A", "health": 100, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.9572380401927286, 0.28930145939483976], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 100, "position": [17.186935716350288, 12.900671912665038], "direction": [0.8998106483126544, 0.43628064039464376], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 1, "agents": [{"name": "A", "health": 100, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.9736431899731524, -0.22807660690852066], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 100, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 2, "agents": [{"name": "A", "health": 90, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.7291614332842081, -0.6843417305783123], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 100, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 3, "agents": [{"name": "A", "health": 90, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 100, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 4, "agents": [{"name": "A", "health": 90, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 90, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 5, "agents": [{"name": "A", "health": 90, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 90, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 6, "agents": [{"name": "A", "health": 90, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 90, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 7, "agents": [{"name": "A", "health": 80, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 90, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 8, "agents": [{"name": "A", "health": 80, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 90, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 9, "agents": [{"name": "A", "health": 80, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 80, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 10, "agents": [{"name": "A", "health": 80, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 80, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 11, "agents": [{"name": "A", "health": 80, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 80, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 12, "agents": [{"name": "A", "health": 70, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 80, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 13, "agents": [{"name": "A", "health": 70, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 80, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 14, "agents": [{"name": "A", "health": 70, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 70, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 15, "agents": [{"name": "A", "health": 70, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 70, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 16, "agents": [{"name": "A", "health": 70, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 70, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 17, "agents": [{"name": "A", "health": 60, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 70, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 18, "agents": [{"name": "A", "health": 60, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 70, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 19, "agents": [{"name": "A", "health": 60, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 60, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 20, "agents": [{"name": "A", "health": 60, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 60, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 21, "agents": [{"name": "A", "health": 60, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 60, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 22, "agents": [{"name": "A", "health": 50, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 60, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 23, "agents": [{"name": "A", "health": 50, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 60, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 24, "agents": [{"name": "A", "health": 50, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 50, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 25, "agents": [{"name": "A", "health": 50, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 50, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 26, "agents": [{"name": "A", "health": 50, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 50, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 27, "agents": [{"name": "A", "health": 40, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 50, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 28, "agents": [{"name": "A", "health": 40, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 50, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 29, "agents": [{"name": "A", "health": 40, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 40, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 30, "agents": [{"name": "A", "health": 40, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 40, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 31, "agents": [{"name": "A", "health": 40, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 40, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 32, "agents": [{"name": "A", "health": 30, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 40, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 33, "agents": [{"name": "A", "health": 30, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 40, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 34, "agents": [{"name": "A", "health": 30, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.186935716350288, 12.900671912665038], "intensity": 1.0}]}, {"turn": 35, "agents": [{"name": "A", "health": 30, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 36, "agents": [{"name": "A", "health": 30, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 37, "agents": [{"name": "A", "health": 20, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 38, "agents": [{"name": "A", "health": 20, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 39, "agents": [{"name": "A", "health": 20, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 40, "agents": [{"name": "A", "health": 20, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 41, "agents": [{"name": "A", "health": 20, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 42, "agents": [{"name": "A", "health": 10, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 43, "agents": [{"name": "A", "health": 10, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 44, "agents": [{"name": "A", "health": 10, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 45, "agents": [{"name": "A", "health": 10, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 46, "agents": [{"name": "A", "health": 10, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 47, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": [{"position": [17.620353729081085, 14.557707747040482], "intensity": 1.0}]}, {"turn": 48, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 49, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 50, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [17.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 51, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 52, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 53, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 54, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 55, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 56, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 57, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 58, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}, {"turn": 59, "agents": [{"name": "A", "health": 0, "position": [17.620353729081085, 14.557707747040482], "direction": [-0.2893014593948404, -0.9572380401927284], "kills": 0, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 0}}, {"name": "B", "health": 30, "position": [19.186935716350288, 12.900671912665038], "direction": [0.5611185598371823, 0.8277354419174321], "kills": 1, "team_id": null, "weapon": "normal", "ammo": {"shotgun": 0, "sniper": 0, "rocket": 2}}], "bullets": [], "obstacles": [{"rect": [14, 10, 2, 10]}, {"rect": [8, 18, 14, 2]}], "supplies": [], "explosions": []}];
+const canvasW = 600, canvasH = 600;
+const mapW = 30, mapH = 30;
+const agentColors = {};
+
+// 分配颜色
+const colorList = ["#a855f7","#ec4899","#22d3ee","#facc15","#84cc16","#fb923c"];
+states.forEach(f => {
+  f.agents.forEach((a, i) => {
+    if (!agentColors[a.name]) agentColors[a.name] = colorList[Object.keys(agentColors).length % colorList.length];
+  });
+});
+
+let currentFrame = 0, isPlaying = true, fps = 4;
+let lastTime = 0;
+
+const stage = document.getElementById('stage');
+const timeline = document.getElementById('timeline');
+const frameLabel = document.getElementById('frameLabel');
+const frameTotal = document.getElementById('frameTotal');
+const info = document.getElementById('info');
+
+frameTotal.textContent = states.length - 1;
+timeline.max = states.length - 1;
+
+function renderFrame(frameIdx) {
+  if (frameIdx >= states.length) return;
+  const f = states[frameIdx];
+  const currentFrame = frameIdx;  // 给角色动画用
+  // 统一缩放（地图不形变）+ 居中留白
+  const scale = Math.min(canvasW / mapW, canvasH / mapH);
+  const contentW = mapW * scale;
+  const contentH = mapH * scale;
+  const offsetX = (canvasW - contentW) / 2;
+  const offsetY = (canvasH - contentH) / 2;
+  const scaleX = scale, scaleY = scale;
+
+  let svg = `<svg width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect width="${canvasW}" height="${canvasH}" fill="#1e293b"/>`;
+  svg += `<rect width="${canvasW}" height="${canvasH}" fill="#334155" opacity="0.3"/>`;
+
+  // 网格（用统一 scale 避免形变）
+  for (let x = 0; x <= mapW; x += 10) {
+    const px = offsetX + x*scale;
+    svg += `<line x1="${px}" y1="${offsetY}" x2="${px}" y2="${offsetY+contentH}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+  }
+  for (let y = 0; y <= mapH; y += 10) {
+    const py = offsetY + y*scale;
+    svg += `<line x1="${offsetX}" y1="${py}" x2="${offsetX+contentW}" y2="${py}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+  }
+
+  // 障碍物
+  (f.obstacles || []).forEach(obs => {
+    const [rx, ry, rw, rh] = obs.rect;
+    const x = offsetX + rx * scaleX, y = offsetY + ry * scaleY, w = rw * scaleX, h = rh * scaleY;
+    svg += `<g transform="translate(${x},${y})">`;
+    svg += `<svg width="${w}" height="${h}" viewBox="0 0 32 32">`;
+    svg += `<use href="#obstacle_brick" width="32" height="32"/>`;  // 关键：width/height
+    svg += `</svg></g>`;
+  });
+
+  // 补给
+  (f.supplies || []).forEach(s => {
+    const sx = offsetX + s.position[0] * scaleX - 8;
+    const sy = offsetY + s.position[1] * scaleY - 8;
+    let kind = s.type;
+    let svgId = 'supply_health';
+    if (kind.includes('weapon_shotgun')) svgId = 'supply_weapon_sg';
+    else if (kind.includes('weapon_sniper')) svgId = 'supply_weapon_sr';
+    else if (kind.includes('weapon_rocket')) svgId = 'supply_weapon_rl';
+    else if (kind.startsWith('ammo')) svgId = 'supply_ammo';
+    // 关键：必须加 width/height，否则浏览器拉伸填满父容器
+    svg += `<use href="#${svgId}" x="${sx-2}" y="${sy-2}" width="20" height="20"/>`;
+  });
+
+  // 子弹
+  (f.bullets || []).forEach(b => {
+    const bx = offsetX + b.position[0] * scaleX;
+    const by = offsetY + b.position[1] * scaleY;
+    const [dx, dy] = b.direction || [1, 0];
+    const tx = bx - dx * 8, ty = by - dy * 8;
+    // 尾迹
+    svg += `<line x1="${tx}" y1="${ty}" x2="${bx}" y2="${by}" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>`;
+    // 关键：必须加 width/height
+    svg += `<use href="#bullet_${b.kind || 'normal'}" x="${bx-5}" y="${by-5}" width="10" height="10"/>`;
+  });
+
+  // 爆炸 / 受击效果（缩小到合理范围）
+  (f.explosions || []).forEach(e => {
+    const ex = offsetX + e.position[0] * scaleX;
+    const ey = offsetY + e.position[1] * scaleY;
+    const r = 10;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r}" fill="#fbbf24" opacity="0.7"/>`;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r*0.6}" fill="#f97316" opacity="0.9"/>`;
+    svg += `<circle cx="${ex}" cy="${ey}" r="${r*0.3}" fill="#fef3c7"/>`;
+    // 放射线
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI * 2 * i) / 6;
+      const x1 = ex + Math.cos(a) * r * 0.5;
+      const y1 = ey + Math.sin(a) * r * 0.5;
+      const x2 = ex + Math.cos(a) * r * 1.3;
+      const y2 = ey + Math.sin(a) * r * 1.3;
+      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>`;
+    }
+    // 受击感叹号（8px）
+    svg += `<text x="${ex}" y="${ey+3}" font-size="9" text-anchor="middle" fill="#000" font-weight="bold">!</text>`;
+  });
+
+  // Agent
+  f.agents.forEach(a => {
+    const ax = offsetX + a.position[0] * scaleX;
+    const ay = offsetY + a.position[1] * scaleY;
+    const [dx, dy] = a.direction || [1, 0];
+    const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    const color = agentColors[a.name] || '#3b82f6';
+    const weapon = a.weapon || 'normal';
+    const hp = Math.max(0, a.health) / 100;
+    const face = hp > 0.5 ? 'happy' : (hp > 0.25 ? 'angry' : 'scared');
+    const cx = 18, cy = 18, r = 12;
+    const pupilOff = (deg > 90 || deg < -90) ? -2 : 2;
+    const hpColor = hp > 0.5 ? '#22c55e' : (hp > 0.25 ? '#eab308' : '#ef4444');
+    const weaponColor = {normal:'#888',shotgun:'#f97316',sniper:'#a855f7',rocket:'#dc2626'}[weapon];
+
+    svg += `<g transform="translate(${ax-12},${ay-12})">`;
+    svg += `<ellipse cx="12" cy="22" ry="2" rx="8" fill="rgba(0,0,0,0.4)"/>`;
+
+    // 死亡：渲染骷髅
+    if (a.health <= 0) {
+      svg += `<circle cx="12" cy="11" r="8" fill="#fff" stroke="#000" stroke-width="2"/>`;
+      svg += `<path d="M 5 8 Q 12 4 19 8" stroke="#000" stroke-width="1" fill="none"/>`;
+      svg += `<circle cx="9" cy="10" r="3" fill="#000"/>`;
+      svg += `<circle cx="15" cy="10" r="3" fill="#000"/>`;
+      svg += `<polygon points="12,11 10,14 14,14" fill="#000"/>`;
+      svg += `<line x1="8.5" y1="15" x2="8.5" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="11" y1="15" x2="11" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="13" y1="15" x2="13" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="15.5" y1="15" x2="15.5" y2="19" stroke="#000" stroke-width="1"/>`;
+      svg += `<text x="12" y="9" font-size="8" text-anchor="middle" fill="#dc2626" font-weight="bold">✕</text>`;
+      svg += `</g>`;
+      return;
+    }
+
+    // 走动动画：交替脚位置
+    const walking = Math.abs(dx) + Math.abs(dy) > 0.01;
+    const legPhase = walking ? Math.floor(currentFrame / 4) % 2 : 0;
+    const legY = legPhase ? 21 : 22;
+    const legOff = legPhase ? 0.8 : -0.8;
+    svg += `<ellipse cx="${9+legOff}" cy="${legY}" rx="2" ry="1.2" fill="#333"/>`;
+    svg += `<ellipse cx="${15-legOff}" cy="${legY}" rx="2" ry="1.2" fill="#333"/>`;
+
+    svg += `<circle cx="12" cy="12" r="8" fill="${color}" stroke="#000" stroke-width="1.5"/>`;
+    svg += `<circle cx="9" cy="9" r="2.5" fill="rgba(255,255,255,0.4)"/>`;
+    // 表情：scared / angry / happy 三种
+    if (face === 'scared') {
+      // X 眼
+      svg += `<line x1="7" y1="8" x2="11" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="11" y1="8" x2="7" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="13" y1="8" x2="17" y2="12" stroke="#000" stroke-width="1"/>`;
+      svg += `<line x1="17" y1="8" x2="13" y2="12" stroke="#000" stroke-width="1"/>`;
+      // O 嘴
+      svg += `<ellipse cx="12" cy="16" rx="2" ry="2.5" fill="#000"/>`;
+    } else if (face === 'angry') {
+      // V 眉
+      svg += `<line x1="6" y1="9" x2="10" y2="11" stroke="#000" stroke-width="1.2"/>`;
+      svg += `<line x1="18" y1="9" x2="14" y2="11" stroke="#000" stroke-width="1.2"/>`;
+      svg += `<circle cx="9" cy="10" r="1.2" fill="#000"/>`;
+      svg += `<circle cx="15" cy="10" r="1.2" fill="#000"/>`;
+      // 直线嘴
+      svg += `<line x1="9" y1="16" x2="15" y2="16" stroke="#000" stroke-width="1.2"/>`;
+    } else {
+      // happy
+      svg += `<circle cx="9" cy="10" r="1.5" fill="#fff"/>`;
+      svg += `<circle cx="15" cy="10" r="1.5" fill="#fff"/>`;
+      svg += `<circle cx="${9+pupilOff}" cy="10" r="0.8" fill="#000"/>`;
+      svg += `<circle cx="${15+pupilOff}" cy="10" r="0.8" fill="#000"/>`;
+      // 微笑
+      svg += `<path d="M 9 15 Q 12 17 15 15" stroke="#000" stroke-width="1" fill="none"/>`;
+    }
+    // 武器（朝朝向）
+    svg += `<g transform="rotate(${deg} 12 12)"><rect x="18" y="10.5" width="4" height="3" fill="${weaponColor}" stroke="#000" stroke-width="0.4"/></g>`;
+    // 血量环
+    const circ = 2 * Math.PI * 11;
+    svg += `<circle cx="12" cy="12" r="11" fill="none" stroke="#333" stroke-width="1.5"/>`;
+    svg += `<circle cx="12" cy="12" r="11" fill="none" stroke="${hpColor}" stroke-width="1.5" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-hp)}" transform="rotate(-90 12 12)"/>`;
+    svg += `</g>`;
+  });
+
+  svg += `</svg>`;
+  stage.innerHTML = svg;
+
+  // 信息面板
+  let infoHtml = '';
+  f.agents.forEach(a => {
+    const color = agentColors[a.name] || '#3b82f6';
+    const hp = Math.max(0, a.health);
+    infoHtml += `<div class="card" style="border-left:4px solid ${color}">
+      <b>${a.name}</b> · 血 ${hp}/100 · 击杀 ${a.kills || 0}
+      <div class="hp"><div class="hpfill" style="width:${hp}%"></div></div>
+      ${a.weapon && a.weapon !== 'normal' ? '<small>武器:' + a.weapon + '</small>' : ''}
+    </div>`;
+  });
+  info.innerHTML = infoHtml;
+
+  timeline.value = frameIdx;
+  frameLabel.textContent = frameIdx;
+}
+
+function gameLoop(t) {
+  if (isPlaying && t - lastTime > 1000/fps) {
+    currentFrame = (currentFrame + 1) % states.length;
+    renderFrame(currentFrame);
+    lastTime = t;
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+function togglePlay() { isPlaying = !isPlaying; }
+function reset() { currentFrame = 0; renderFrame(0); isPlaying = true; lastTime = 0; }
+function speedUp() { fps = Math.min(fps + 5, 60); document.getElementById('speedDisplay').textContent = fps; }
+function speedDown() { fps = Math.max(fps - 5, 5); document.getElementById('speedDisplay').textContent = fps; }
+
+// ====== Web Audio 8-bit 音效 ======
+let audioCtx = null;
+let soundEnabled = false;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundStatus').textContent = soundEnabled ? '开' : '关';
+  if (soundEnabled) { ensureAudio(); audioCtx.resume(); playSound('pickup'); }
+}
+function playSound(kind) {
+  if (!soundEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  if (kind === 'shoot') {
+    // 短促方波（800Hz）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.08);
+  } else if (kind === 'explode') {
+    // 低频 + 噪声（爆炸）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } else if (kind === 'pickup') {
+    // 上升音（拾取）
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+}
+// 监听帧变化触发音效
+let lastFrameIdx = -1;
+let lastBulletCount = 0;
+let lastExplosionCount = 0;
+const origRenderFrame = renderFrame;
+renderFrame = function(frameIdx) {
+  origRenderFrame(frameIdx);
+  if (frameIdx !== lastFrameIdx && soundEnabled) {
+    const cur = states[frameIdx];
+    if (cur) {
+      const bc = cur.bullets ? cur.bullets.length : 0;
+      const ec = cur.explosions ? cur.explosions.length : 0;
+      if (bc > lastBulletCount) playSound('shoot');
+      if (ec > lastExplosionCount) playSound('explode');
+      lastBulletCount = bc;
+      lastExplosionCount = ec;
+    }
+  }
+  lastFrameIdx = frameIdx;
+};
+timeline.oninput = () => { currentFrame = parseInt(timeline.value); renderFrame(currentFrame); };
+
+renderFrame(0);
+requestAnimationFrame(gameLoop);
+</script>
+</body></html>

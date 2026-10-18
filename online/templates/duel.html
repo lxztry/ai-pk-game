@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI竞技平台 - Prompt 对决</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; min-height: 100vh; padding: 20px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .subtitle { text-align: center; margin-bottom: 30px; opacity: 0.85; }
+        .grid { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 15px; margin-bottom: 20px; }
+        .vs { display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; }
+        .player-panel {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 18px;
+        }
+        .player-panel.red { border-left: 4px solid #ef4444; }
+        .player-panel.blue { border-left: 4px solid #3b82f6; }
+        .player-panel h2 { margin-bottom: 12px; font-size: 18px; }
+        label { display: block; margin-bottom: 4px; font-size: 13px; opacity: 0.9; }
+        input, select, textarea {
+            width: 100%; padding: 8px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.2); color: white; font-size: 14px;
+            font-family: inherit;
+        }
+        textarea { min-height: 130px; resize: vertical; font-family: 'Consolas', monospace; }
+        .form-row { margin-bottom: 12px; }
+        .settings {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px; padding: 18px; margin-bottom: 20px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;
+        }
+        button {
+            background: linear-gradient(135deg, #fbbf24, #f97316);
+            border: none; padding: 14px 40px; border-radius: 8px;
+            color: white; font-size: 18px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 4px 20px rgba(251,191,36,0.4); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .actions { text-align: center; }
+        .status {
+            margin-top: 20px; padding: 15px; border-radius: 8px;
+            background: rgba(255,255,255,0.15); min-height: 50px;
+        }
+        .status.running { background: rgba(59,130,246,0.3); }
+        .status.completed { background: rgba(34,197,94,0.3); }
+        .status.error { background: rgba(239,68,68,0.3); }
+        .replay-frame { margin-top: 20px; }
+        .replay-frame iframe {
+            width: 100%; height: 600px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 12px; background: #1a1a2e;
+        }
+        .preset-btn {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+            padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+            color: white;
+        }
+        .preset-btn:hover { background: rgba(255,255,255,0.25); }
+        .preset-row { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            background: rgba(255,255,255,0.2); font-size: 11px; margin-left: 8px;
+        }
+        .providers-info {
+            font-size: 12px; opacity: 0.7; margin-top: 8px;
+            background: rgba(0,0,0,0.15); padding: 8px; border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ Prompt 对决</h1>
+        <p class="subtitle">输入两个自然语言 prompt，让同一个 LLM 决定谁更会打</p>
+
+        <div class="grid">
+            <div class="player-panel red">
+                <h2>🟥 玩家 A <span class="badge" id="badge-a">balanced</span></h2>
+                <div class="form-row">
+                    <label>名字</label>
+                    <input type="text" id="name-a" value="激进派" />
+                </div>
+                <div class="form-row">
+                    <label>性格</label>
+                    <select id="persona-a">
+                        <option value="aggressive" selected>aggressive (激进)</option>
+                        <option value="defensive">defensive (防守)</option>
+                        <option value="sniper">sniper (狙击)</option>
+                        <option value="balanced">balanced (均衡)</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Prompt 策略</label>
+                    <textarea id="prompt-a" placeholder="你是激进的战斗特工。看到敌人就射击...">你是激进的战斗特工。规则：
+1. 视野里有敌人立即射击
+2. 没敌人时朝敌人方向冲锋
+3. 血量 < 20 才考虑逃跑</textarea>
+                    <div class="preset-row">
+                        <span style="font-size: 12px; opacity: 0.7;">预设:</span>
+                        <button class="preset-btn" onclick="setPreset('a', 'aggressive')">激进</button>
+                        <button class="preset-btn" onclick="setPreset('a', 'defensive')">防守</button>
+                        <button class="preset-btn" onclick="setPreset('a', 'sniper')">狙击</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vs">⚔️</div>
+
+            <div class="player-panel blue">
+                <h2>🟦 玩家 B <span class="badge" id="badge-b">balanced</span></h2>
+                <div class="form-row">
+                    <label>名字</label>
+                    <input type="text" id="name-b" value="防守派" />
+                </div>
+                <div class="form-row">
+                    <label>性格</label>
+                    <select id="persona-b">
+                        <option value="aggressive">aggressive (激进)</option>
+                        <option value="defensive" selected>defensive (防守)</option>
+                        <option value="sniper">sniper (狙击)</option>
+                        <option value="balanced">balanced (均衡)</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>Prompt 策略</label>
+                    <textarea id="prompt-b" placeholder="你是谨慎的战斗特工...">你是谨慎的战斗特工。规则：
+1. 距离敌人 > 15 才射击，避免近战
+2. 持续移动，不 idle
+3. 血量 < 50 立刻远离敌人</textarea>
+                    <div class="preset-row">
+                        <span style="font-size: 12px; opacity: 0.7;">预设:</span>
+                        <button class="preset-btn" onclick="setPreset('b', 'aggressive')">激进</button>
+                        <button class="preset-btn" onclick="setPreset('b', 'defensive')">防守</button>
+                        <button class="preset-btn" onclick="setPreset('b', 'sniper')">狙击</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings">
+            <div class="form-row">
+                <label>🤖 LLM Provider</label>
+                <select id="provider">
+                    <option value="mock">mock (无需 API key)</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>🔑 API Key (可选)</label>
+                <input type="password" id="api-key" placeholder="留空用环境变量" />
+            </div>
+            <div class="form-row">
+                <label>📦 模型</label>
+                <input type="text" id="model" placeholder="默认按 provider 自动选" />
+            </div>
+            <div class="form-row">
+                <label>🗺️ 地图大小</label>
+                <input type="number" id="map-size" value="25" min="20" max="100" />
+            </div>
+        </div>
+
+        <div class="providers-info" id="providers-info">加载支持的 LLM provider...</div>
+
+        <div class="actions">
+            <button id="duel-btn" onclick="startDuel()">⚔️ 开打！</button>
+        </div>
+
+        <div class="status" id="status">准备就绪。提交后开始对决。</div>
+        <div class="replay-frame" id="replay-frame" style="display:none;">
+            <h2>🎬 回放</h2>
+            <iframe id="replay-iframe"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const PRESETS = {
+            aggressive: '你是激进的战斗特工。规则：\n1. 视野里有敌人立即射击\n2. 没敌人时朝敌人方向冲锋\n3. 血量 < 20 才考虑逃跑',
+            defensive: '你是谨慎的战斗特工。规则：\n1. 距离敌人 > 15 才射击，避免近战\n2. 持续移动，不 idle\n3. 血量 < 50 立刻远离敌人',
+            sniper: '你是狙击手型特工。规则：\n1. 远距离优先，保持距离\n2. 一旦瞄准就射击\n3. 血量 < 40 找掩体',
+        };
+        function setPreset(side, persona) {
+            document.getElementById('prompt-' + side).value = PRESETS[persona];
+            document.getElementById('persona-' + side).value = persona;
+            updateBadges();
+        }
+        function updateBadges() {
+            document.getElementById('badge-a').textContent = document.getElementById('persona-a').value;
+            document.getElementById('badge-b').textContent = document.getElementById('persona-b').value;
+        }
+        document.getElementById('persona-a').onchange = updateBadges;
+        document.getElementById('persona-b').onchange = updateBadges;
+
+        async function loadProviders() {
+            try {
+                const r = await fetch('/api/llm-providers');
+                const data = await r.json();
+                const sel = document.getElementById('provider');
+                const info = document.getElementById('providers-info');
+                const lines = ['<b>支持的 LLM：</b><br>'];
+                data.providers.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.name;
+                    opt.textContent = `${p.name} (${p.default_model})`;
+                    sel.appendChild(opt);
+                    lines.push(`• <b>${p.name}</b>: ${p.api_key_env} → ${p.default_model}<br>`);
+                });
+                info.innerHTML = lines.join('');
+            } catch (e) {
+                document.getElementById('providers-info').textContent = '加载 provider 失败: ' + e.message;
+            }
+        }
+
+        async function startDuel() {
+            const btn = document.getElementById('duel-btn');
+            const status = document.getElementById('status');
+            btn.disabled = true;
+            status.className = 'status running';
+            status.innerHTML = '⏳ 正在调用 LLM 并跑对决...';
+
+            const payload = {
+                player1: {
+                    name: document.getElementById('name-a').value || 'A',
+                    prompt: document.getElementById('prompt-a').value,
+                    persona: document.getElementById('persona-a').value,
+                },
+                player2: {
+                    name: document.getElementById('name-b').value || 'B',
+                    prompt: document.getElementById('prompt-b').value,
+                    persona: document.getElementById('persona-b').value,
+                },
+                provider: document.getElementById('provider').value,
+                api_key: document.getElementById('api-key').value || null,
+                model: document.getElementById('model').value || null,
+                map_size: parseInt(document.getElementById('map-size').value),
+                max_turns: 100,
+                shotgun_duel: true,
+            };
+
+            try {
+                const r = await fetch('/api/duel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || '请求失败');
+
+                status.className = 'status completed';
+                status.innerHTML = `
+                    <h2>🏆 ${data.winner || '平局'} 获胜！</h2>
+                    <p>${data.player1.name}: 血 ${data.player1.health} 杀 ${data.player1.kills}</p>
+                    <p>${data.player2.name}: 血 ${data.player2.health} 杀 ${data.player2.kills}</p>
+                    <p>回合数: ${data.turns} | Provider: ${data.provider}</p>
+                `;
+
+                if (data.replay_url) {
+                    const frame = document.getElementById('replay-frame');
+                    frame.style.display = 'block';
+                    document.getElementById('replay-iframe').src = data.replay_url;
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.innerHTML = '❌ ' + e.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        loadProviders();
+        updateBadges();
+    </script>
+</body>
+</html>
